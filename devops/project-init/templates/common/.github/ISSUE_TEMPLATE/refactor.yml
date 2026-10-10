@@ -1,0 +1,13 @@
+name: Refactor
+description: Restructure existing code without changing behavior.
+title: "refactor: "
+labels: [refactor]
+projects: ["{{OWNER}}/{{PROJECT_NUMBER}}"]
+body:
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why does this need to change, and what stays the same from the outside?
+    validations:
+      required: true

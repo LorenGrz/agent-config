@@ -1,21 +1,42 @@
 # config/ — portable Claude Code configuration
 
-Tracked here, symlinked into `~/.claude/` so Claude Code loads it:
+`install.sh` at the repo root generates/symlinks all of these into `~/.claude/` /
+`~/.codex/` so each agent loads them, combined with your personal profile:
 
 ```
-~/.claude/CLAUDE.md  -> ~/.agents/skills/config/CLAUDE.md
-~/.codex/AGENTS.md   -> ~/.agents/skills/config/AGENTS.md
-~/.claude/rules      -> ~/.agents/skills/config/rules
-~/.claude/hooks      -> ~/.agents/skills/config/hooks
+~/.claude/CLAUDE.md  -> generated: @<repo>/config/AGENTS.md, @<repo>/config/profiles/<name>.md, @<repo>/config/CLAUDE.md
+~/.codex/AGENTS.md   -> generated: <repo>/config/AGENTS.md + <repo>/config/profiles/<name>.md, concatenated
+~/.claude/rules      -> symlink: <repo>/config/rules
+~/.claude/hooks      -> symlink: <repo>/config/hooks
+~/.claude/agents     -> symlink: <repo>/config/agents
 ```
 
-`AGENTS.md` holds the agent-agnostic instructions (read by Codex and other agents); `CLAUDE.md` is
-`@~/.agents/skills/config/AGENTS.md` plus Claude Code-only sections (skills, agent routing).
+`AGENTS.md` and `CLAUDE.md` here are **generic** — shareable with anyone who clones this
+repo, no names or personal paths. `AGENTS.md` holds the agent-agnostic instructions (read by
+Codex and other agents, concatenated with your profile); `CLAUDE.md` holds Claude Code-only
+sections (skills, agent routing) and is never imported by `AGENTS.md` itself — the generated
+`~/.claude/CLAUDE.md` imports both plus your profile, in that order.
 
-Edit here, commit, push, then `git -C ~/projects/claude-skills pull` for the showcase clone.
+**`profiles/`** — personal content, one file per person. `_template.md` is the commented
+template; copy it to `<name>.md` and fill it in (identity, preferred language, GitHub owner,
+learning stage, your own project/tool paths, OS settings repo, ...). Never add personal
+content to `AGENTS.md` or `CLAUDE.md` above — add it to your profile instead.
 
-**Not tracked** (machine-local / secret): `~/.claude/settings.json`, `settings.local.json`,
-`.credentials.json`, `sessions/`, `projects/` (auto-memory + transcripts), logs, caches.
+Edit here, commit, push; keep any personal mirror clone you maintain in sync yourself (not
+tracked by this repo).
+
+**Also tracked:**
+
+- `agents/` — `scout.md`, `worker.md`, `reasoner.md`, the three model-pinned subagents (see root README).
+- `settings.base.json` — sanitized base merged into `~/.claude/settings.json` by `install.sh`
+  (permissions, model, hooks, statusLine, enabledPlugins, extraKnownMarketplaces, theme). No secrets,
+  no machine-specific `autoMode` block.
+- `rulesync/` — multi-AI rule/skill generation for Codex CLI, Cursor, and Google Antigravity
+  (Gemini). See the root README.
+
+**Not tracked** (machine-local / secret): `~/.claude/settings.json` (the real, merged file),
+`settings.local.json`, `.credentials.json`, `sessions/`, `projects/` (auto-memory + transcripts),
+logs, caches.
 
 > Cowork sessions on the desktop skip a symlinked `~/.claude/rules/` that points outside
 > the working dir. This setup targets the Claude Code CLI, where symlinked rules load fine.
@@ -27,7 +48,8 @@ Path-scoped — each loads only when Claude touches a matching file.
 | File | Loads on | Purpose |
 |------|----------|---------|
 | `typescript.md` | `**/*.ts(x)` | strict typing, boundary validation |
-| `react.md` | `**/*.tsx`, `**/*.jsx` | no-`useEffect` doctrine, hooks own data-loading, frontend domain objects, Vitest+RTL (BookLibre patterns) |
+| `react.md` | `**/*.tsx`, `**/*.jsx` | zero-`useEffect`-for-logic doctrine, hooks own data-loading, presentational/container split, Vitest+RTL |
+| `next.md` | Next `app/` files, `next.config.*`, `middleware.ts`/`proxy.ts` | RSC-first data loading, Server Actions, client-boundary and secret rules |
 | `nestjs.md` | Nest file suffixes | clean-architecture layering |
 | `kotlin.md` | `**/*.kt(s)` | Spring Boot layered architecture (domain / service / controller / mapper), Kotest |
 | `python.md` | `**/*.py` | uv/ruff/mypy, pydantic, agent-script reliability |
@@ -39,7 +61,10 @@ Path-scoped — each loads only when Claude touches a matching file.
 ```json
 {
   "hooks": {
-    "PreToolUse":  [{ "matcher": "Edit|Write|MultiEdit", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/guard-omarchy.sh" }] }],
+    "PreToolUse":  [
+      { "matcher": "Edit|Write|MultiEdit", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/guard-omarchy.sh" }] },
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/scout-readonly.sh" }] }
+    ],
     "PostToolUse": [{ "matcher": "Edit|Write|MultiEdit", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/format-file.sh", "statusMessage": "formatting" }] }],
     "Stop":        [{ "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/stop-git-status.sh" }] }],
     "InstructionsLoaded": [{ "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/log-instructions.sh", "async": true }] }]
@@ -49,7 +74,14 @@ Path-scoped — each loads only when Claude touches a matching file.
 
 | Script | Event | Does |
 |--------|-------|------|
-| `guard-omarchy.sh` | PreToolUse | denies edits under `~/.local/share/omarchy/` |
+| `guard-omarchy.sh` | PreToolUse (Edit\|Write\|MultiEdit) | denies edits under `~/.local/share/omarchy/` |
+| `scout-readonly.sh` | PreToolUse (Bash) | inside the `scout` subagent only: allowlists read-only commands, denies writes/mutating flags |
 | `format-file.sh` | PostToolUse | project formatter on the edited file: prettier → eslint `--fix` (TS), `ktlint -F` (Kotlin), `ruff` (Python) |
 | `stop-git-status.sh` | Stop | shows uncommitted changes when in a git repo |
-| `log-instructions.sh` | InstructionsLoaded | logs loaded rules/skills to `~/.claude/logs/instructions-loaded.log` |
+| `log-instructions.sh` | InstructionsLoaded | logs session/cwd + `file_path`/`memory_type`/`load_reason`/`trigger_file_path` (or raw JSON if the payload has none of those) to `~/.claude/logs/instructions-loaded.log` |
+
+## Per-repo setup
+
+This `config/` tree is global (machine-wide). Per-repo agent config — `AGENTS.md`,
+`.claude/settings.json` with superpowers, branch/lint hooks, CI, GitHub Project —
+comes from the `devops/project-init` skill, run once per new repo.

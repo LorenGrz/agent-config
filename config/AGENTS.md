@@ -1,11 +1,16 @@
-# Loren Personal Agent Instructions
+# Agent Instructions
 
-These instructions are shared by every coding agent (Claude Code, Codex, others). Treat them as persistent personal preferences. Agent-specific additions live in each agent's own file (e.g. `CLAUDE.md`), never duplicated here.
+Shared instructions for every coding agent (Claude Code, Codex, others). Agent-specific
+additions live in each agent's own file (e.g. `CLAUDE.md`), never duplicated here.
+Personal preferences (identity, language, learning stage, your own project paths) live in
+your profile (`config/profiles/<your-name>.md`, imported alongside this file) — not here.
 
 ## Communication
 
 - Answer in the user's language by default.
-- For every user message written partly or fully in English, add a 2-line-maximum `English note` (one main issue) plus a `Better` line with the prompt phrased correctly, written only in English (the `english-prompt-coach` skill, when available).
+- If the active profile enables English coaching, add a 2-line-maximum `English note` (one
+  main issue) plus a `Better` line with the prompt phrased correctly, written only in
+  English, for every user message written partly or fully in English.
 - Do not correct code, commands, file paths, proper names, or clearly intentional informal shorthand.
 - Keep explanations concise and practical.
 - Use direct engineering language. Avoid cheerleading, vague reassurance, and unnecessary theory.
@@ -17,37 +22,27 @@ These instructions are shared by every coding agent (Claude Code, Codex, others)
 - Use `rg` or `rg --files` first for searching.
 - Do not overwrite, revert, or delete user changes unless explicitly asked.
 - Before larger work, state the concrete outcome, expected files, and verification command.
+- New project → `project-init` skill (scaffolds AGENTS.md, .claude/, CI, GitHub Project; works with any AI).
 - Prefer project-local dependencies and scripts over global installs.
 - Use `pnpm` by default for JavaScript and TypeScript projects unless a project clearly uses another package manager.
 - Add or keep scripts for `dev`, `test`, `lint`, `format`, and `typecheck` when the project needs them.
 - Maintain a short `README.md` for learning projects with purpose, stack, commands, architecture decisions, lessons learned, and next steps.
 - Per-repo context lives in `AGENTS.md` (single source of truth for every agent). `CLAUDE.md`, when present, contains only `@AGENTS.md` plus Claude-specific instructions. Never duplicate content between them; when a repo has both with overlapping content, merge into AGENTS.md.
+- Every repo keeps: (a) `AGENTS.md` as the map new sessions read instead of the code; (b) `.agents/CONTEXT.md` for current state; (c) `docs/superpowers/specs/` and `docs/superpowers/plans/` for every approved spec/plan — copy an approved plan-mode plan into `docs/superpowers/plans/YYYY-MM-DD-<slug>.md` before implementing (plan mode saves outside the repo, in `~/.claude/plans`); (d) `docs/decisions/NNNN-<slug>.md` ADRs for decisions with trade-offs. Update these after merging.
 
 ## Roadmap
 
-Now learning Python.`
-
-Loren's full-stack TypeScript learning order:
-
-```text
-JavaScript -> Node.js -> TypeScript -> React -> NestJS -> Supabase + WebSockets -> Next.js -> React Native
-```
-
-**Current stage (as of 2026-08-03):** NestJS + Supabase + WebSockets. React in-depth study completed. JavaScript, Node.js, and TypeScript foundations done. Next stages: Next.js → React Native.
-
-- Keep roadmap tasks small and aligned to the current stage.
-- Do not introduce later frameworks just to make a project look advanced.
-- Current roadmap repo: `/home/loren/projects/roadmap`.
-- Repository context file: `/home/loren/projects/roadmap/.agents/CONTEXT.md`.
-- Long-term product track: Study Tracker / Developer Progress Tracker (StudyQuest).
-- Portfolio work should explain problem solved, stack, architecture decisions, lessons learned, repository link, and live demo when available.
+Learning roadmap and current stage are personal — see your profile
+(`config/profiles/<your-name>.md`) and the `roadmap-coach` skill
+(`meta/roadmap-coach/references/roadmap-detail.md`).
 
 ## Git
 
+- If the repo has `scripts/gh-flow.sh` (repos scaffolded with `project-init`), use it: the repo's AGENTS.md flow (base `dev`, PR + squash) overrides this global workflow.
 - Assume the worktree may already be dirty.
 - Inspect `git status --short` before committing.
 - Prefer non-interactive git commands: inline `-m` messages, never open an editor, never `-i`.
-- Never use destructive commands like `git reset --hard` or checkout-based reverts unless Loren explicitly asks.
+- Never use destructive commands like `git reset --hard` or checkout-based reverts unless the user explicitly asks.
 - Never `git push --force` to `main`/`master` or any shared branch.
 
 ### GitHub push workflow (always follow when pushing to main/master or handling a GitHub remote)
@@ -66,13 +61,13 @@ Detect the default branch first: `git symbolic-ref --short refs/remotes/origin/H
 
 3. **Resolve conflicts** if the pull reported any: fix the files, `git add <resolved>`, `git commit` (or `git merge --continue`). Only then continue.
 
-4. **Branch:** `git checkout -b <type>/<slug>` where `<type>` is `feature`, `refactor`, or `fix` and `<slug>` is a short kebab-case summary.
+4. **Branch:** `git checkout -b <type>/<slug>` where `<type>` is `feat`, `refactor`, or `fix` and `<slug>` is a short kebab-case summary.
 
 5. **Verify the touched layer**, then **stage & commit.** Run the checks for what changed and fix failures before committing:
    - frontend (React/TS): `pnpm lint` (must pass at `--max-warnings 0`) and `pnpm test run`
    - backend (Kotlin/Spring): `./gradlew test`
    - other stacks: the project's own lint + typecheck + unit tests
-   Then review `git status --short`; if unrelated changes are mixed in, ask Loren before continuing. Otherwise `git add .` then `git commit -m "<Conventional Commit subject>"`.
+   Then review `git status --short`; if unrelated changes are mixed in, ask before continuing. Otherwise `git add .` then `git commit -m "<Conventional Commit subject>"`.
 
 6. **Push the branch:** `git push -u origin <type>/<slug>`.
 
@@ -96,10 +91,11 @@ If the repo has branch protection or a PR-based flow, stop after step 6 and open
 - If tests or installs need network access, explain the blocker and ask for permission when the tool requires it.
 - Report what was changed, what was verified, and anything not verified.
 
-## Omarchy And System Config
+## OS and desktop config
 
-- For end-user Omarchy customization, edit safe user config locations such as `~/.config/`, never Omarchy source under `~/.local/share/omarchy/`.
-- If changing OS or desktop config, test locally first.
-- Before pushing OS config changes, ask Loren to confirm the change works.
-- Omarchy settings repo: `/home/loren/projects/omarchy-settings`.
-- Do not push unrelated or pre-existing changes.
+- If a profile names a desktop-environment settings repo (e.g. Omarchy), edit only safe
+  user config locations (such as `~/.config/`), never the desktop environment's own source
+  tree.
+- If changing OS or desktop config, test locally first, and confirm the change works before
+  pushing to the settings repo named in the profile. Do not push unrelated or pre-existing
+  changes.

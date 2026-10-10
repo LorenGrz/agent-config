@@ -7,6 +7,8 @@ description: Keep Loren's learning and project work aligned to the full-stack Ty
 
 Keep work scoped to the current learning stage and convert broad ideas into small, verifiable steps.
 
+For the detailed current stage, roadmap repo paths, and long-term product track, load `references/roadmap-detail.md`.
+
 ## Roadmap Order
 
 1. JavaScript fundamentals
@@ -20,7 +22,7 @@ Keep work scoped to the current learning stage and convert broad ideas into smal
 
 ## Workflow
 
-1. Identify the user's current stage from the repo, request, and `/home/loren/projects/roadmap/README.md` when relevant.
+1. Identify the user's current stage from the repo, request, and `~/projects/roadmap/README.md` when relevant.
 2. State whether the requested work fits the current stage or is a deliberate preview of a later stage.
 3. Prefer the smallest useful project or exercise that teaches the intended concept.
 4. Define a concrete deliverable and verification command before implementing larger work.

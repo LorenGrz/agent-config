@@ -1,61 +1,49 @@
-@~/.agents/skills/config/AGENTS.md
-
 # Claude Code specifics
 
-These instructions adapt Claude Code to Loren's current Codex workflow. Treat them as persistent personal preferences.
+Claude Code-only additions on top of `AGENTS.md` (imported separately by the file that
+pulls this one in — do not re-import it here).
 
 ## Skills
 
-When a task matches an existing skill, invoke it before acting (`/<name>` or let it auto-activate). Load only the skill needed for the task.
+Invoke a matching skill before acting (`/<name>` or auto-activate); load only what the task needs.
 
-Skills auto-load from `/home/loren/.claude/skills` (flat symlinks). Source of truth is the categorised tree in `/home/loren/.agents/skills/<category>/<skill>/`, which is a git clone of github.com/LorenGrz/claude-skills. Workflow: edit in the hub, commit, `git push`, then `git -C /home/loren/projects/claude-skills pull` (that second clone is the public showcase). After adding/moving a skill run `/home/loren/.agents/skills/sync.sh` to refresh the mirror. AWS skills live in `/home/loren/projects/aws-skills`; Oracle APEX (`apexlang`) in `/home/loren/projects/oracle-skills` (`apex/apexlang`); Omarchy/diagnose-crash ship with Omarchy — all symlinked into the hub and gitignored there.
+Skills live in this repo's `<category>/<skill>/` directories, mirrored flat into
+`~/.claude/skills` by `sync.sh` — run it after adding/moving a skill. Edit skills in the
+repo, commit, push; see the repo's own README for the remote and any mirror clones you keep
+in sync (profile-specific, not listed here).
 
-Path-scoped rules in `/home/loren/.claude/rules/` (`typescript`, `react`, `nestjs`, `testing`, `python`) load automatically when Claude touches matching files. Some skills also carry `paths:` frontmatter and surface on their own for the matching file types.
+Path-scoped rules in `~/.claude/rules/` load automatically when Claude touches a matching file (`paths:` frontmatter); some skills carry the same frontmatter.
 
 Routing (by skill name):
 
-- PDF work: use MarkItDown first — `/home/loren/projects/markitdown/.venv/bin/markitdown`.
 - React build/refactor: `react-scalable-frontend`. React review: `react-component-validator`.
-- TypeScript quality: `typescript-code-quality`. Project scaffolding: `typescript-project-starter`.
+- TypeScript quality: `typescript-code-quality`. New repo scaffolding: `project-init`. Tooling upgrade of an existing project: `typescript-project-starter`.
 - Roadmap planning: `roadmap-coach`. NestJS modules: `nest-module-generator`. Next.js SSR: `nextjs-ssr-frontend`.
 - Persistence: `database-persistence-patterns`. API contracts: `api-contract-design`.
 - Tests: `unit-test-generator` to write, `execute-test-suite` to run and fix.
 - Debugging: `debug-assistant`. Docs: `code-documenter`. Regex: `regex-builder-explainer`. Commits: `conventional-commit-generator`.
 - Security/auth: `auth-security-basics` only when relevant.
-- Omarchy/Linux desktop: `omarchy` before editing terminal, Hyprland, Waybar, Mako, Walker, theme, or desktop config.
-- AWS: `sam-deploy` (SAM), `lambda-patterns` (Lambda code), `iam-least-privilege` (IAM — always least privilege), `cost-optimizer` (cost review), `serverless-scanner` (migration analysis).
-- Oracle APEX: `apexlang` for generating/editing APEX apps (`.apx`, page/app metadata, APEXlang workflows).
+- AWS (`aws/`): `sam-deploy`, `lambda-patterns`, `iam-least-privilege` (always least privilege), `cost-optimizer`, `serverless-scanner` (migration analysis).
+- Desktop/OS config, PDFs, and other local-tool skills: check your profile
+  (`config/profiles/<your-name>.md`) for any paths or skills specific to your own setup.
+
+Rule files are guidance; hard constraints live in each repo's ESLint/CI/hooks (see `project-init`).
 
 ## Agent Routing
 
-Three model-pinned agents live in `/home/loren/.claude/agents/`: `scout` (haiku, read-only), `worker` (sonnet, mechanical execution), `reasoner` (opus, decisions).
+Pick the model by task complexity, not by habit:
 
-### Orchestrator mode (default, always — including auto mode)
+- **Opus** (main session / `reasoner`) only reasons and decides — architecture, unknown-cause bugs, plan review, hard-to-reverse calls. Never does worker-type writing.
+- **Sonnet** (`worker`) writes all code/docs from an already-decided plan.
+- **Haiku** (`scout`) does light read-only lookups only.
 
-The main chat (Opus) is the **orchestrator**: it talks with Loren, plans, decides, and reviews. It does not implement multi-step work itself, so the conversation never blocks and Loren can keep planning or talking (including voice mode) while work runs.
+When superpowers dispatches subagents (`subagent-driven-development`, `executing-plans`, `dispatching-parallel-agents`, `requesting-code-review`), set `subagent_type`:
 
-- **Implementation of an approved plan** → hand the whole plan to **one background Opus agent** (`reasoner`, `run_in_background: true`). Subagents can't spawn subagents, so if part of the plan is purely mechanical and independent, the orchestrator launches a `worker` for it in parallel instead.
-- Its prompt must be self-contained: the plan, file paths, constraints, what it must NOT do, and the acceptance command.
-- While it runs, keep answering Loren; don't poll it. When it reports back, verify the claims (run the acceptance command or spot-check) and summarize.
-- Independent tasks → separate background agents in one message; same files → `isolation: "worktree"`.
-- **Stay inline** (orchestrator does it): quick single-step answers/edits, and anything needing Loren in the loop or touching the outside world — logins, deploys, creating repos/cloud projects, pushing, paid resources, secrets. Background agents can't ask Loren questions, so give them no step that needs approval.
+| Subagent role | subagent_type |
+|---|---|
+| Implementer | `worker` |
+| Spec/code-quality reviewer (routine) | `worker` |
+| Reviewer for security/architecture-critical changes | `reasoner` |
+| File search / inventory | `scout` |
 
-Pick the first row that matches (for sub-delegation and one-off tasks):
-
-| Signal | Agent | Model |
-|---|---|---|
-| Single step, file and line already known | none — do it inline | — |
-| Read-only: locate, inventory, map conventions, "where is X" | `scout` | haiku |
-| Mechanical and fully specified, with an objective acceptance check (tests pass, `pnpm lint --max-warnings 0`, typecheck) | `worker` | sonnet |
-| Scope crosses modules, architecture or API contract decision, bug with unknown cause, hard to revert | `reasoner` | opus |
-| High risk and hard to verify (auth, secrets, data migration) | two `reasoner` in parallel, blind to each other, then compare | opus |
-
-Discriminators, in order: **scope** (file → module → system), **verifiability** (is there a command that says yes/no?), **reversibility**. A task that is verifiable and reversible drops a tier even if it is long.
-
-Rules:
-
-- Chain is `scout` → `reasoner` (plan) → `worker` (execute) → verify. Skip stages that add nothing.
-- A subagent gets the acceptance command in its prompt, or it is not ready to be delegated.
-- Launch independent agents in a single message so they run in parallel. Use `isolation: "worktree"` when two of them would write the same files.
-- Escalate on evidence, not on impatience: `worker` failing its check twice, or `debug-assistant`'s first hypothesis not reproducing, moves the task to `reasoner`.
-- Per-skill defaults: `execute-test-suite` → scout tier until red; `unit-test-generator`, `react-component-validator`, `nest-module-generator` → worker; `team-architect-agent`, `api-contract-design`, `auth-security-basics`, `code-review-safety` → reasoner.
+Inline (no subagent) when the change touches ≤3 known files — a cold-start subagent costs more than doing it. Prefer `/clear` between unrelated tasks over `/compact`.

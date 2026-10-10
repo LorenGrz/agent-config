@@ -6,34 +6,35 @@ paths:
 
 # React / frontend
 
-Reference implementation: `~/projects/booklibre/frontend`. React 19 + TS + Vite + Vitest.
+## Zero `useEffect` for logic
 
-## No `useEffect` for logic
-
-- First data load: `useOnInit(() => recargar())` from `utils/hooks.ts` (`useEffect(cb, [])` wrapped). This is the ONLY sanctioned effect-without-deps. Then hold data in `useState`.
-- Reload on a real dependency change: a `useEffect([deps])` guarded by a `useRef(isInitial)` so it does not fire on mount.
-- No effect for derived values (compute in render), for responses to events (use the handler), or for state a parent owns.
-
-## Data loading lives in a custom hook
-
-- One hook per screen/resource (`useDetalleLibro`, `useHomeCatalog`). It owns: `useState` for data / `loading` / `error`; a `useCallback` `recargar` that does the fetch; the `useOnInit` first call; the guarded reload effect. Returns `{ data, setData, loading, error, recargar }`.
-- `catch` → `setError(obtenerMensajeError(err))` (`utils/errorHandler.ts`), never a raw string. That helper narrows `AxiosError` and maps HTTP status → user message, preferring the backend message.
-
-## Frontend domain objects
-
-- `classes/` holds domain classes (`Libro`, `Auth`, `LibroForm`): typed fields, `constructor(data: Partial<T>)` with explicit defaults, `static fromJson` / `fromXxxJson` factories, domain methods (`estaDevuelto`, `calcularBibliokarma`), private helpers. Derived/business logic and its error control live here, not in components.
-- `services/` are axios clients that return domain-class instances, not raw DTOs. `models/` holds DTO types + filter state + constants.
+- Derived values: compute during render, not in an effect + state. `useMemo` only once you've measured the computation is actually expensive.
+- Responses to a user event (click, submit, input change): put the logic in the event handler, not in an effect watching state the handler just set.
+- Don't mirror a prop into local state with an effect; read the prop directly, or derive from it during render.
+- Need to reset a component's state when an id/prop changes? Use `key={id}` on the component, not an effect that resets state.
+- Data loading lives in a custom hook per screen/resource (`useBookDetail`, `useHomeCatalog`), or in TanStack Query / your framework's loaders / React Server Components — never as an inline effect bolted onto a component. The hook owns fetch state (data/loading/error) and exposes a reload function; nothing else in the component reaches for `useEffect` to fetch.
+- `useEffect` is allowed only to synchronize with something outside React: subscriptions, browser APIs (resize, media queries, `localStorage` events), non-React widgets. If it subscribes, it must return a cleanup function.
+- One effect doing several unrelated things is always wrong — split it into one effect per external system, or remove it entirely if none of the pieces actually need one.
 
 ## Components
 
-- Presentational, grouped by feature (`components/home/`, `detalleLibros/`, `ui/`). Pages compose hooks + components; components take props. Context via a `useXContext()` wrapper.
-- One responsibility per component; split when a component both fetches and renders a tree.
+- Split presentational components (props in, markup out) from containers (own hooks, compose presentational children).
+- One responsibility per component; if a component both fetches/owns state and renders a non-trivial tree, split it.
 - Accessible markup by default: labels, roles, keyboard paths.
 
-## Tests — Vitest + React Testing Library + jsdom
+## Tests — Vitest + React Testing Library
 
-- `test/*.test.ts` — domain class: build DTO fixtures, run the factory, assert fields + method results.
-- `test/*.test.tsx` — component: `vi.mock` the service module, render inside the real `AuthContext.Provider` + `MemoryRouter`/`Routes`, `waitFor`, assert spinner → data.
-- `pnpm lint` passes with `--max-warnings 0`; `pnpm test` green. New component/hook ships with a test.
+- Assert behavior (what the user sees/can do), not implementation details (internal state, hook call counts).
+- New component/hook ships with a test; `pnpm lint` passes with `--max-warnings 0`; `pnpm test` green.
+
+## Enforcement
+
+Projects scaffolded with the `project-init` skill enforce this doctrine with
+`eslint-plugin-react-hooks` (compiler rules such as `set-state-in-effect`) and
+`eslint-plugin-react-you-might-not-need-an-effect`. Run `pnpm lint` and fix the
+violation — don't disable the rule.
+
+Reference implementation (one example pattern, not the only valid one):
+`~/projects/booklibre/frontend` — `useOnInit` + a hook per screen + domain classes.
 
 For scalable structure use `react-scalable-frontend`; for component review `react-component-validator`.

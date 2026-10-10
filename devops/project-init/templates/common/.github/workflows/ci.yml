@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run --if-present format:check
+      - run: pnpm run --if-present lint --max-warnings 0
+      - run: pnpm run --if-present typecheck
+      - run: pnpm run --if-present test
+      - run: pnpm run --if-present build
+
+      # Advisory only: surfaces known-vulnerable dependencies without
+      # blocking the required `ci` check branch protection relies on.
+      - run: pnpm audit --audit-level high
+        continue-on-error: true
+
+      # Advisory only: reminds a PR that touches deps/env/docker/workflows/
+      # top-level folders, but not AGENTS.md/.agents/CONTEXT.md/docs/, to
+      # update docs in the same PR. fetch-depth: 0 above so origin/<base_ref>
+      # exists to diff against; the script itself always exits 0.
+      - name: docs-check
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: bash scripts/docs-check.sh
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # gitleaks/gitleaks-action@v2 is free for personal GitHub accounts (no
+      # GITLEAKS_LICENSE needed) but stops working once GitHub drops the
+      # Node 20 runtime it's built on; v3 is the Node 24 replacement with the
+      # same inputs/behavior - see github.com/gitleaks/gitleaks-action.
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

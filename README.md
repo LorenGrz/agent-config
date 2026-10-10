@@ -1,138 +1,304 @@
-# claude-skills
+# agent-config
 
-Personal Claude Code setup for Lorenzo Graizzaro:
+Lorenzo Graizzaro's **agent config + skills hub**, built to be portable: one repo that
+configures every coding AI anyone uses (Claude Code, Codex CLI, Cursor, Google
+Antigravity/Gemini) the same way, plus the on-demand skill library they all share. Clone it
+and point your own agent at it — personal content (names, paths, learning stage, GitHub
+owner) lives only in `config/profiles/<your-name>.md`, never in the shared files.
 
-- **skills** (this tree, by category) — loaded on demand when a task matches their `description`.
-- **[`config/`](./config/)** — `CLAUDE.md`, path-scoped `rules/`, and lifecycle `hooks/`,
-  symlinked into `~/.claude/`. See [`config/README.md`](./config/README.md).
+Two things live here, and they're both "always available, loaded only when needed":
 
-`~/.agents/skills` is a clone of this repo; `~/projects/claude-skills` is a second clone (public showcase).
+- **Config** (`config/`) — instructions, path-scoped rules, lifecycle hooks, and the three
+  model-pinned subagents. Generated/symlinked into `~/.claude/` and `~/.codex/` by
+  `install.sh`.
+- **Skills** (category directories below) — `SKILL.md` files loaded on demand when their
+  `description` matches the task, mirrored flat into `~/.claude/skills` by `sync.sh`.
 
-## How skills are discovered
+Neither of these makes a project well-run on its own — see ["How it works"](#how-it-works)
+for the second, per-project layer (`project-init`) that does the actual enforcement.
 
-Claude Code only discovers skills at `~/.claude/skills/<skill-name>/SKILL.md` —
-**direct children, no category subfolders**. A path like
-`~/.claude/skills/development/code-documenter/SKILL.md` is **not** detected.
+## Install
 
-So the layout is split in two:
+Pick **one** method per machine — they overlap and aren't meant to be combined.
 
-| Layer | Path | Structure |
-|-------|------|-----------|
-| **Source of truth** (this repo, cloned to `~/.agents/skills`) | `~/.agents/skills/<category>/<skill>/SKILL.md` | organised by category |
-| **What Claude Code reads** | `~/.claude/skills/<skill>` → symlink into the tree | **flat** |
+### Method 1 — `install.sh` (full: config + rules + hooks + subagents + skills)
 
-`~/.agents/skills` is never read by Claude Code directly, only the flat symlink
-mirror in `~/.claude/skills`. Directory symlinks are officially supported and a
-skill reachable from more than one path is loaded once.
+```bash
+git clone https://github.com/LorenGrz/agent-config ~/.agents/skills
+~/.agents/skills/install.sh --dry-run    # preview, changes nothing
+~/.agents/skills/install.sh --profile <your-name>
+```
 
-Run [`./sync.sh`](./sync.sh) after adding, moving, or removing a skill to
-regenerate the flat symlinks in `~/.claude/skills`.
+Inside a Claude Code or Codex session opened in the clone, you can instead just ask your
+agent to "install this repo" — see `AGENTS.md` and the `agent-config-setup` skill, which
+implement the same guided flow (dry-run → resolve/create your profile → confirm → install →
+verify).
+
+`--profile` picks `config/profiles/<name>.md` to import into your generated
+`~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`. No existing profile and no `--profile`? It
+tries `gh api user --jq .login`; if that doesn't match an existing profile either, it copies
+`config/profiles/_template.md` for you to fill in, or falls back to using the template
+directly if `gh` isn't available. Fill in your own profile — see
+`config/profiles/_template.md` — rather than editing `config/AGENTS.md`/`config/CLAUDE.md`,
+which stay generic for everyone who clones this repo.
+
+Re-run `install.sh` any time — it is idempotent and never deletes a real file (see
+[Install / update workflow](#install--update-workflow)).
+
+### Method 2 — Claude Code plugin marketplace (skills + agents + hooks only)
+
+```bash
+claude plugin marketplace add LorenGrz/agent-config
+claude plugin install agent-config@agent-config
+```
+
+Gets you the skill library, the three subagents, and the generic lifecycle hooks (not
+`guard-omarchy` or the cost-tracking status line — those stay `install.sh`-only). It does
+**not** get you path-scoped rules (rules aren't a Claude Code plugin component at all) or
+the generated `CLAUDE.md`/`AGENTS.md`/`settings.json` merge — use Method 1 for those.
+
+## Repository layout
+
+```
+.
+├── AGENTS.md              # map for an agent working IN this repo (install flow, conventions)
+├── CLAUDE.md               # @AGENTS.md + Claude Code-only pointer to agent-config-setup
+├── install.sh                # generates CLAUDE.md/AGENTS.md, symlinks rules/hooks/agents,
+│                               merges settings.json, runs sync.sh — see --profile below
+├── sync.sh                    # rebuilds the flat ~/.claude/skills mirror from <category>/<skill>/
+├── README.md                   # this file
+│
+├── .claude-plugin/              # plugin marketplace (skills + agents + hooks only — see Install)
+│   ├── marketplace.json
+│   └── plugin.json
+├── hooks/
+│   └── hooks.json                # plugin hooks (generic subset of config/hooks/*.sh)
+│
+├── config/                     # global, agent-facing config — see config/README.md
+│   ├── AGENTS.md                # generic, shareable instructions (no personal content)
+│   ├── CLAUDE.md                # Claude Code-only sections, kept ≤60 lines, also generic
+│   ├── profiles/                  # personal content, one file per person
+│   │   ├── _template.md             # commented template — copy this to get started
+│   │   └── loren.md                 # Lorenzo's own profile (identity, paths, stage, ...)
+│   ├── settings.base.json         # sanitized base merged into ~/.claude/settings.json
+│   ├── agents/                     # scout.md, worker.md, reasoner.md — model-pinned subagents
+│   ├── rules/                      # path-scoped conventions (typescript.md, react.md, ...)
+│   ├── hooks/                       # lifecycle shell scripts wired in settings.base.json
+│   └── rulesync/                     # multi-AI generation for Cursor / Antigravity — see below
+│
+├── docs/
+│   └── decisions/                 # ADRs for this hub's own structure (0001-single-repo.md, ...)
+│
+├── aws/                        # AWS skills, folded in via `git subtree` (ADR 0001)
+├── development/                # building features (React, Next.js, NestJS, TS quality, ...)
+├── devops/                     # repo/release lifecycle — includes project-init (see below)
+├── quality/                    # review and tests
+├── security/                   # auth, prompt-injection defense
+├── productivity/               # non-code deliverables (CV, email, meeting notes, ...)
+├── meta/                       # workflow/process skills, incl. agent-config-setup (see Install)
+│
+├── apexlang -> ~/projects/oracle-skills/apex/apexlang   # external, gitignored
+├── omarchy -> /usr/share/omarchy/.../omarchy             # external, ships with Omarchy
+└── diagnose-crash -> /usr/share/omarchy/.../diagnose-crash
+```
+
+Profiles: everything personal (identity, preferred language, GitHub owner, learning stage,
+your own project/tool paths) lives in `config/profiles/<your-name>.md`, never in
+`config/AGENTS.md`/`config/CLAUDE.md` — those two are imported by `install.sh` into every
+agent session and must stay shareable with anyone who clones this repo. Copy
+`config/profiles/_template.md` to get started, or let `install.sh`/the
+`agent-config-setup` skill offer to do it for you.
 
 ## Categories
 
-### `development/` — building features
+| Category | Skills |
+|---|---|
+| `aws/` | `sam-deploy`, `lambda-patterns`, `iam-least-privilege`, `cost-optimizer`, `serverless-scanner` |
+| `development/` | `api-contract-design`, `code-documenter`, `database-persistence-patterns`, `debug-assistant`, `frontend-design`, `nest-module-generator`, `nextjs-ssr-frontend`, `react-native-mobile`, `react-scalable-frontend`, `regex-builder-explainer`, `typescript-code-quality`, `typescript-project-starter` |
+| `quality/` | `code-review-safety`, `execute-test-suite`, `react-component-validator`, `unit-test-generator` |
+| `devops/` | `conventional-commit-generator`, `project-init`, `repository-context-maintainer`, `run-docker-environment` |
+| `security/` | `auth-security-basics`, `prompt-injection-defense` |
+| `productivity/` | `ats-resume-formatting`, `cv-linkedin-optimizer`, `meeting-notes-organizer`, `presentation-prep`, `professional-email-drafter` |
+| `meta/` | `agent-config-setup`, `codex-workflows`, `english-prompt-coach`, `roadmap-coach`, `team-architect-agent`, `team-implementer-agent`, `team-reviewer-agent` |
+| external (symlinked, not vendored) | `apexlang` (Oracle APEX), `omarchy`, `diagnose-crash` (ship with Omarchy) |
 
-| Skill | Purpose |
-|-------|---------|
-| [`api-contract-design`](./development/api-contract-design/SKILL.md) | REST API contracts, DTOs, validation, backward-compatible changes |
-| [`code-documenter`](./development/code-documenter/SKILL.md) | Reference docs for a function/class/module in the language's native doc format |
-| [`database-persistence-patterns`](./development/database-persistence-patterns/SKILL.md) | Repositories, migrations, transactions, domain/storage separation |
-| [`debug-assistant`](./development/debug-assistant/SKILL.md) | Error + stack trace → root cause → minimal fix, with a prevention tip |
-| [`nest-module-generator`](./development/nest-module-generator/SKILL.md) | NestJS modules/controllers/services with clean-architecture layering |
-| [`nextjs-ssr-frontend`](./development/nextjs-ssr-frontend/SKILL.md) | Next.js App Router, server components, route handlers, caching |
-| [`react-native-mobile`](./development/react-native-mobile/SKILL.md) | React Native navigation, state, permissions, platform differences |
-| [`react-scalable-frontend`](./development/react-scalable-frontend/SKILL.md) | Scalable React architecture — components, state, hooks, folders |
-| [`regex-builder-explainer`](./development/regex-builder-explainer/SKILL.md) | Build a regex from natural language or explain one, with match examples |
-| [`typescript-code-quality`](./development/typescript-code-quality/SKILL.md) | Strict typing, safe error modelling, validation boundaries |
-| [`typescript-project-starter`](./development/typescript-project-starter/SKILL.md) | Scaffold JS/TS projects with pnpm, scripts, tests, lint, format |
+Each skill's `SKILL.md` has the one-line purpose in its `description` frontmatter; browse
+the directories above for the full list with links, or run `rg description */*/SKILL.md`.
 
-### `quality/` — review and tests
+## How it works
 
-| Skill | Purpose |
-|-------|---------|
-| [`code-review-safety`](./quality/code-review-safety/SKILL.md) | Review changes for correctness, security, test coverage, architecture drift |
-| [`execute-test-suite`](./quality/execute-test-suite/SKILL.md) | Detect the build tool, run the right suite, drive a fix-and-retest loop |
-| [`react-component-validator`](./quality/react-component-validator/SKILL.md) | Review React components; avoid bad effects; useOnInit lifecycle standard |
-| [`unit-test-generator`](./quality/unit-test-generator/SKILL.md) | Generate a unit test file for one unit (happy path, edges, errors) |
+Two independent layers. Neither needs the other, but most real repos want both.
 
-### `devops/` — repo, environment, release
+### Global — always active, in any folder, zero setup
 
-| Skill | Purpose |
-|-------|---------|
-| [`conventional-commit-generator`](./devops/conventional-commit-generator/SKILL.md) | Commit messages in Conventional Commits form from a diff or description |
-| [`repository-context-maintainer`](./devops/repository-context-maintainer/SKILL.md) | Keep `.agents/CONTEXT.md` and project docs current |
-| [`run-docker-environment`](./devops/run-docker-environment/SKILL.md) | Start local docker-compose dev databases, inspect container health |
+What's active depends on when it loads, not whether it's "installed":
 
-### `security/`
+| Loads | When | Where it comes from |
+|---|---|---|
+| `CLAUDE.md` / `AGENTS.md` | Every session, in full, before the first message | `config/CLAUDE.md` (Claude Code), `config/AGENTS.md` (Codex, others) |
+| Skills | Description only, until the task matches and the model invokes it | `~/.claude/skills/<name>/SKILL.md`, flat mirror of `<category>/<skill>/` |
+| Rules | Only when a touched file matches `paths:` frontmatter | `config/rules/*.md` |
+| Hooks | Executed by the harness at a lifecycle event — **not** read by the model | `config/hooks/*.sh`, wired in `~/.claude/settings.json` |
+| Subagents (`scout`/`worker`/`reasoner`) | Dispatched explicitly, each with its own model pin | `config/agents/*.md` |
+| Auto-memory | Loaded by the harness at session start, outside this repo | `~/.claude/projects/.../memory/` |
 
-| Skill | Purpose |
-|-------|---------|
-| [`auth-security-basics`](./security/auth-security-basics/SKILL.md) | Auth, authorization, token/session handling, secrets, input validation |
-| [`prompt-injection-defense`](./security/prompt-injection-defense/SKILL.md) | OWASP LLM01 defence-in-depth for apps that send untrusted text to an LLM |
+Hooks, concretely (event → script):
 
-### `productivity/` — non-code deliverables
+| Event | Script | Does |
+|---|---|---|
+| `PreToolUse` (Edit/Write/MultiEdit) | `guard-omarchy.sh` | denies edits under `~/.local/share/omarchy/` |
+| `PreToolUse` (Bash) | `scout-readonly.sh` | inside the `scout` subagent only: allows read-only commands, denies writes |
+| `PostToolUse` (Edit/Write/MultiEdit) | `format-file.sh` | runs the project's own formatter/linter on the edited file |
+| `Stop` | `stop-git-status.sh` | shows uncommitted changes when in a git repo |
+| `InstructionsLoaded` | `log-instructions.sh` | logs what got loaded to `~/.claude/logs/instructions-loaded.log` |
 
-| Skill | Purpose |
-|-------|---------|
-| [`ats-resume-formatting`](./productivity/ats-resume-formatting/SKILL.md) | Parse-safe CV layout for Workday/Greenhouse/Lever: single column, stacked Title/Company/Dates, plain-text test. Vendored from [msdanyg/ats-resume-skill](https://github.com/msdanyg/ats-resume-skill) (MIT) |
-| [`cv-linkedin-optimizer`](./productivity/cv-linkedin-optimizer/SKILL.md) | Tailor CV and LinkedIn to a job posting; ATS keywords; honest gaps |
-| [`meeting-notes-organizer`](./productivity/meeting-notes-organizer/SKILL.md) | Raw notes → summary, decisions, action items with owner and deadline |
-| [`presentation-prep`](./productivity/presentation-prep/SKILL.md) | Topic/briefing → slide-by-slide structure with visuals, notes, timing |
-| [`professional-email-drafter`](./productivity/professional-email-drafter/SKILL.md) | Work emails with situation-appropriate tone, subject line, next step |
+The plugin marketplace method (below) ships the last four as a generic subset
+(`hooks/hooks.json`) and omits `guard-omarchy.sh` (desktop-specific) and the cost-tracking
+status line (untracked, machine-local).
 
-### `meta/` — how Loren works
+Generated files + symlink map (`install.sh` creates/repairs these; see `config/README.md`
+for the full list — `<repo>` is wherever you cloned this):
 
-| Skill | Purpose |
-|-------|---------|
-| [`codex-workflows`](./meta/codex-workflows/SKILL.md) | Reuse Loren's Codex/local-agent workflows and migration patterns |
-| [`english-prompt-coach`](./meta/english-prompt-coach/SKILL.md) | Short English feedback on prompts written partly/fully in English |
-| [`roadmap-coach`](./meta/roadmap-coach/SKILL.md) | Keep work aligned to the full-stack TS learning roadmap; task sizing |
-| [`team-architect-agent`](./meta/team-architect-agent/SKILL.md) | Small-team architect role: boundaries, contracts, tradeoffs, plans |
-| [`team-implementer-agent`](./meta/team-implementer-agent/SKILL.md) | Small-team implementer role: scoped production code from a plan |
-| [`team-reviewer-agent`](./meta/team-reviewer-agent/SKILL.md) | Small-team reviewer role: bugs, missing tests, security, drift |
-
-## Skills linked from other repos
-
-These are **not** stored here. They live in their own repos and are symlinked
-into `~/.agents/skills` (and mirrored flat into `~/.claude/skills`).
-
-| Skill | Source repo | Conceptual category |
-|-------|-------------|---------------------|
-| `sam-deploy`, `lambda-patterns`, `cost-optimizer`, `serverless-scanner` | [`LorenGrz/aws-skills`](https://github.com/LorenGrz/aws-skills) | devops |
-| `iam-least-privilege` | [`LorenGrz/aws-skills`](https://github.com/LorenGrz/aws-skills) | security |
-| `apexlang` (Oracle APEX app generation) | [`oracle/skills`](https://github.com/oracle/skills) — `apex/apexlang`, UPL-1.0 | development |
-| `omarchy`, `diagnose-crash` | `/usr/share/omarchy/default/agents/skills/` (ships with Omarchy) | system |
-
-`omarchy` and `diagnose-crash` are not vendored here — they update with the OS.
-On a machine without Omarchy, install it (or skip those two skills).
-
-## Clones
-
-- `~/.agents/skills` — the working hub. Git clone of this repo; the flat mirror
-  in `~/.claude/skills` symlinks into it. Edit here.
-- `~/projects/claude-skills` — a second clone, the public showcase. Keep it
-  current with `git -C ~/projects/claude-skills pull` after pushing.
-
-## Setup on a new machine
-
-```bash
-# 1. Clone the hub
-git clone https://github.com/LorenGrz/claude-skills ~/.agents/skills
-
-# 2. Link the external skill repos (see table above), e.g.
-git clone https://github.com/LorenGrz/aws-skills ~/projects/aws-skills
-git clone https://github.com/oracle/skills ~/projects/oracle-skills
-ln -sfn ~/projects/oracle-skills/apex/apexlang ~/.agents/skills/apexlang
-
-# 3. Generate the flat symlink mirror Claude Code reads
-cd ~/.agents/skills && ./sync.sh
+```
+~/.claude/CLAUDE.md  (generated — @-imports <repo>/config/{AGENTS.md,profiles/<name>.md,CLAUDE.md})
+~/.codex/AGENTS.md   (generated — <repo>/config/AGENTS.md + your profile, concatenated)
+~/.claude/rules ───────┐
+~/.claude/hooks ───────┼──► <repo>/config/{rules,hooks,agents}
+~/.claude/agents ──────┘
+~/.claude/skills/<name> ──► <repo>/<category>/<name>/   (flat mirror, via sync.sh)
 ```
 
-## Adding or changing a skill
+### Per-project — `project-init`, once per real repo
 
-1. Create/edit `~/.agents/skills/<category>/<skill>/SKILL.md`.
-2. Frontmatter: `name`, a specific `description` starting with "Use this skill
-   when…", optional `metadata`, optional `paths:` to auto-activate for matching
-   files.
-3. Run `./sync.sh` to refresh `~/.claude/skills`.
-4. `git commit` and `git push`, then pull in the showcase clone.
+The global layer only *guides* a model. It can't stop a human, a different AI, or a model
+having a bad day from skipping it — instructions are advisory, not enforced. `project-init`
+(`devops/project-init/`) scaffolds a repo so the standards hold regardless of who or what is
+driving:
+
+| Adds | Why |
+|---|---|
+| Project `AGENTS.md` (+ thin `CLAUDE.md` pointer) | one source of truth any AI reads, not a Claude-only doc |
+| `.claude/settings.json` with superpowers + branch/lint hooks | this project's Claude Code picks up spec-driven workflow + guardrails automatically |
+| ESLint (type-aware: `no-explicit-any`, `no-floating-promises`, ...) + strict `tsconfig` | a human or any AI can turn these off in a prompt; they can't turn off a lint/build failure |
+| Git pre-push hook + CI (`ci`, `secret-scan` via gitleaks) | enforcement that runs even if nobody reads `AGENTS.md` at all |
+| `scripts/gh-flow.sh` | `start`/`pr`/`merge`/`release` — same branch flow every repo, no re-deciding |
+| GitHub Project v2 (backlog, labels, protected branch) | work is tracked as issues, not lost in chat history |
+| `docs/` layer: `.agents/CONTEXT.md`, `docs/architecture.md`, `docs/decisions/` (ADRs), `docs/superpowers/{specs,plans}/`, `docs/plans/HANDOFF.md` | a new session reads docs instead of re-deriving the codebase; see the global docs rule in `AGENTS.md`'s Working Style |
+
+In short: instructions (global layer) only guide Claude; repo enforcement (`project-init`)
+works for any AI *and* humans, because it lives in the tooling, not the prompt.
+
+### When do I need `project-init`?
+
+| Situation | Action |
+|---|---|
+| One-off script, scratch exploration, a file you're reading not shipping | Nothing — global layer is enough |
+| A real repo that will get a second commit, a PR, or outlive this session | Run `project-init` |
+| An existing repo without it | Run `project-init`'s scaffolding selectively, or at minimum add `AGENTS.md` + the `docs/` layer by hand |
+
+## Daily workflow
+
+```mermaid
+flowchart LR
+    A[Issue in GitHub Project] --> B{feat/refactor?}
+    B -- yes --> C[brainstorming -> spec in docs/superpowers/specs/]
+    C --> D[writing-plans -> plan in docs/superpowers/plans/]
+    B -- fix --> E[systematic-debugging]
+    D --> F["gh-flow.sh start <type> <slug> --issue N"]
+    E --> F
+    F --> G[subagent-driven-development:<br/>worker writes, reasoner decides, scout looks up]
+    G --> H[verification-before-completion]
+    H --> I["gh-flow.sh pr"]
+    I --> J[CI: lint, typecheck, test, gitleaks]
+    J --> K["gh-flow.sh merge (squash)"]
+    K --> L[Project item -> Done]
+    L --> M[Update AGENTS.md / CONTEXT.md / ADRs]
+```
+
+## Model routing by complexity
+
+See ADR [0003](docs/decisions/0003-model-routing-by-complexity.md) for the reasoning; the
+rule itself (also in `config/CLAUDE.md`, which loads every session):
+
+| Model / subagent | Does | Never does |
+|---|---|---|
+| Opus / `reasoner` (main session) | Decides: architecture, unknown-cause bugs, plan review, hard-to-reverse calls | Worker-type writing |
+| Sonnet / `worker` | Writes all code/docs from an already-decided plan | Open-ended decisions |
+| Haiku / `scout` | Light read-only lookups | Writes, decisions |
+
+Inline (no subagent) when the change touches ≤3 known files — a cold-start subagent costs
+more tokens than doing it directly.
+
+## Multi-AI: Codex, Cursor, Antigravity (Gemini)
+
+| Gets | Via | Scope |
+|---|---|---|
+| Codex CLI | `~/.codex/AGENTS.md` generated file (install.sh) *or* rulesync (redundant for this file — see ADR 0002) | full `AGENTS.md` + your profile |
+| Cursor | rulesync global skills/subagents/mcp/hooks/permissions; **not** global rules (unsupported upstream) | `config/rulesync/` proof skills only |
+| Google Antigravity (Gemini-family CLI/IDE) | rulesync global rules + skills (`~/.gemini/GEMINI.md`, `~/.gemini/config/rules/*.md`, `~/.gemini/antigravity-cli/skills/`) | full `AGENTS.md` + `config/rules/*.md` + proof skills |
+| Claude Code | native: `config/CLAUDE.md`, skills mirror, rules, hooks, subagents | everything |
+
+Generate/update the Cursor + Antigravity copies:
+
+```bash
+./install.sh --with-rulesync
+```
+
+See `config/rulesync/` and ADR [0002](docs/decisions/0002-rulesync-for-multi-ai.md) for how
+the source tree is built (from `config/AGENTS.md` + `config/rules/*.md` + three proof
+skills, not duplicated by hand) and exactly which tool/feature combinations rulesync
+actually supports in global mode — it is not symmetric across tools.
+
+## Token efficiency
+
+- `config/CLAUDE.md` loads every session — kept ≤60 lines (ADR
+  [0004](docs/decisions/0004-token-budget.md)). Detail that's rarely needed moved into the
+  skill it's about (e.g. the roadmap detail lives in `roadmap-coach`'s `references/`, not in
+  always-loaded `AGENTS.md`).
+- Measure actual spend with [`ccusage`](https://github.com/ryoppippi/ccusage):
+  `npx ccusage@latest` (install.sh prints this hint).
+- [`rtk`](https://github.com/rtk-ai/rtk) (optional, `install.sh --with-rtk`) is a separate
+  token-reduction tool for repeated agent runs — install it deliberately, not by default.
+- Per-project MCP servers and the Vercel plugin are opt-in per repo
+  (`.claude/settings.local.json`), not globally enabled — `config/settings.base.json` ships
+  `vercel@claude-plugins-official: false` and only `superpowers` on by default.
+- Prefer `/clear` between unrelated tasks over `/compact` — a fresh session is cheaper than
+  summarizing a long one just to keep going.
+
+## Install / update workflow
+
+```bash
+./install.sh --dry-run                      # print planned actions only
+./install.sh --profile <name>                # generate CLAUDE.md/AGENTS.md, symlinks, settings.json
+./install.sh --profile <name> --with-rulesync # also generate Cursor/Antigravity config
+./install.sh --profile <name> --with-rtk      # also install rtk + `rtk init -g`
+```
+
+Adding or changing a skill:
+
+```bash
+# 1. create/edit <repo>/<category>/<skill>/SKILL.md
+# 2. ./sync.sh                              # refresh ~/.claude/skills
+# 3. git add -A && git commit -m "..." && git push
+# 4. keep any personal mirror clone you maintain in sync (your profile, not this file)
+```
+
+### Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| A skill doesn't activate | `/context` to see what's loaded; confirm `SKILL.md`'s `description` actually matches the task |
+| Rules/hooks seem stale | `./sync.sh` then `/doctor`; confirm the symlink still resolves (`readlink ~/.claude/rules`) |
+| Hook not firing | `/hooks` to see registered hooks; `~/.claude/logs/instructions-loaded.log` shows what loaded and when |
+| `settings.json` looks wrong after install | check the timestamped `.bak.<timestamp>` next to it — `install.sh` always backs up before writing |
+
+## Credits / inspiration
+
+- [obra/superpowers](https://github.com/obra/superpowers) — spec-driven workflow, subagent
+  dispatch, the skill format this hub follows.
+- [trailofbits/claude-code-config](https://github.com/trailofbits/claude-code-config) —
+  hook patterns and guardrail ideas.
+- [affaan-m/ECC](https://github.com/affaan-m) — engineering-config conventions.
+- [rtk-ai/rtk](https://github.com/rtk-ai/rtk) — optional token-reduction tooling.
+- [dyoshikawa/rulesync](https://github.com/dyoshikawa/rulesync) — multi-AI rule/skill
+  generation.

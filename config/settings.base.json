@@ -1,0 +1,118 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(aws * describe-*)",
+      "Bash(aws * list-*)",
+      "Bash(aws * get-*)",
+      "Bash(aws * lookup-*)",
+      "Bash(aws s3 ls*)",
+      "Bash(aws sts get-caller-identity*)",
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm lint)",
+      "Bash(pnpm test)",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "Bash(identify *)",
+      "Bash(docker compose ps*)",
+      "Bash(journalctl *)",
+      "mcp__claude-in-chrome__find",
+      "mcp__claude_ai_Supabase__get_advisors",
+      "mcp__claude-in-chrome__read_network_requests",
+      "mcp__claude_ai_Supabase__list_migrations",
+      "Bash(systemctl is-active *)",
+      "Bash(pnpm -v)"
+    ],
+    "ask": [
+      "Bash(aws * delete-*)",
+      "Bash(aws * terminate-*)",
+      "Bash(aws * release-*)",
+      "Bash(aws * detach-*)",
+      "Bash(aws * remove-*)",
+      "Bash(aws * put-*)",
+      "Bash(aws * create-*)",
+      "Bash(aws * update-*)",
+      "Bash(aws * attach-*)",
+      "Bash(aws * modify-*)",
+      "Bash(aws * stop-*)",
+      "Bash(aws * reboot-*)",
+      "Bash(aws s3 rm*)",
+      "Bash(aws s3 rb*)",
+      "Bash(aws s3 cp*)",
+      "Bash(aws s3 mv*)",
+      "Bash(aws s3 sync*)"
+    ]
+  },
+  "model": "opus",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/guard-omarchy.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/scout-readonly.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/format-file.sh",
+            "statusMessage": "formatting"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/stop-git-status.sh"
+          }
+        ]
+      }
+    ],
+    "InstructionsLoaded": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/log-instructions.sh",
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/hooks/statusline-costo.sh",
+    "padding": 0
+  },
+  "enabledPlugins": {
+    "vercel@claude-plugins-official": false,
+    "superpowers@superpowers-marketplace": true
+  },
+  "extraKnownMarketplaces": {
+    "superpowers-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "obra/superpowers-marketplace"
+      }
+    }
+  },
+  "theme": "dark"
+}

@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.pnp*
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*credentials*.json
+*secret*.json
+
+# Build output
+dist/
+build/
+out/
+.next/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# Logs & caches
+*.log
+.cache/
+tmp/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Superpowers
+.superpowers/
