@@ -60,6 +60,7 @@ regenerate the flat symlinks in `~/.claude/skills`.
 | Skill | Purpose |
 |-------|---------|
 | [`conventional-commit-generator`](./devops/conventional-commit-generator/SKILL.md) | Commit messages in Conventional Commits form from a diff or description |
+| [`project-init`](./devops/project-init/SKILL.md) | Scaffolds a new repo for any AI agent: AGENTS.md, `.claude` with superpowers + hooks, spec-driven flow, feat/fix/refactor PRs to dev, GitHub Project backlog, CI |
 | [`repository-context-maintainer`](./devops/repository-context-maintainer/SKILL.md) | Keep `.agents/CONTEXT.md` and project docs current |
 | [`run-docker-environment`](./devops/run-docker-environment/SKILL.md) | Start local docker-compose dev databases, inspect container health |
 

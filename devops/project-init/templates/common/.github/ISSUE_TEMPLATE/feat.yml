@@ -1,0 +1,20 @@
+name: Feature
+description: A new capability or enhancement.
+title: "feat: "
+labels: [feat]
+projects: ["{{OWNER}}/{{PROJECT_NUMBER}}"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What and why
+      description: What should this do, and what problem does it solve?
+    validations:
+      required: true
+  - type: textarea
+    id: spec
+    attributes:
+      label: Spec / plan link
+      description: Link to docs/superpowers/specs/ and docs/superpowers/plans/ once written.
+    validations:
+      required: false

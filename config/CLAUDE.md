@@ -16,7 +16,7 @@ Routing (by skill name):
 
 - PDF work: use MarkItDown first — `/home/loren/projects/markitdown/.venv/bin/markitdown`.
 - React build/refactor: `react-scalable-frontend`. React review: `react-component-validator`.
-- TypeScript quality: `typescript-code-quality`. Project scaffolding: `typescript-project-starter`.
+- TypeScript quality: `typescript-code-quality`. New project/repo scaffolding: `project-init` (agents setup, CI, GitHub Project, branch flow). Tooling upgrade of an existing JS/TS project: `typescript-project-starter`.
 - Roadmap planning: `roadmap-coach`. NestJS modules: `nest-module-generator`. Next.js SSR: `nextjs-ssr-frontend`.
 - Persistence: `database-persistence-patterns`. API contracts: `api-contract-design`.
 - Tests: `unit-test-generator` to write, `execute-test-suite` to run and fix.
@@ -25,6 +25,8 @@ Routing (by skill name):
 - Omarchy/Linux desktop: `omarchy` before editing terminal, Hyprland, Waybar, Mako, Walker, theme, or desktop config.
 - AWS: `sam-deploy` (SAM), `lambda-patterns` (Lambda code), `iam-least-privilege` (IAM — always least privilege), `cost-optimizer` (cost review), `serverless-scanner` (migration analysis).
 - Oracle APEX: `apexlang` for generating/editing APEX apps (`.apx`, page/app metadata, APEXlang workflows).
+
+Rule files are guidance; hard constraints live in each repo's ESLint/CI/hooks (see `project-init`).
 
 ## Agent Routing
 

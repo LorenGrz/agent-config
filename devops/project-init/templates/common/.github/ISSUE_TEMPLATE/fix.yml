@@ -1,0 +1,18 @@
+name: Bug fix
+description: Something is broken.
+title: "fix: "
+labels: [fix]
+projects: ["{{OWNER}}/{{PROJECT_NUMBER}}"]
+body:
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual behavior
+    validations:
+      required: true

@@ -27,7 +27,8 @@ Path-scoped — each loads only when Claude touches a matching file.
 | File | Loads on | Purpose |
 |------|----------|---------|
 | `typescript.md` | `**/*.ts(x)` | strict typing, boundary validation |
-| `react.md` | `**/*.tsx`, `**/*.jsx` | no-`useEffect` doctrine, hooks own data-loading, frontend domain objects, Vitest+RTL (BookLibre patterns) |
+| `react.md` | `**/*.tsx`, `**/*.jsx` | zero-`useEffect`-for-logic doctrine, hooks own data-loading, presentational/container split, Vitest+RTL |
+| `next.md` | Next `app/` files, `next.config.*`, `middleware.ts`/`proxy.ts` | RSC-first data loading, Server Actions, client-boundary and secret rules |
 | `nestjs.md` | Nest file suffixes | clean-architecture layering |
 | `kotlin.md` | `**/*.kt(s)` | Spring Boot layered architecture (domain / service / controller / mapper), Kotest |
 | `python.md` | `**/*.py` | uv/ruff/mypy, pydantic, agent-script reliability |
@@ -52,4 +53,10 @@ Path-scoped — each loads only when Claude touches a matching file.
 | `guard-omarchy.sh` | PreToolUse | denies edits under `~/.local/share/omarchy/` |
 | `format-file.sh` | PostToolUse | project formatter on the edited file: prettier → eslint `--fix` (TS), `ktlint -F` (Kotlin), `ruff` (Python) |
 | `stop-git-status.sh` | Stop | shows uncommitted changes when in a git repo |
-| `log-instructions.sh` | InstructionsLoaded | logs loaded rules/skills to `~/.claude/logs/instructions-loaded.log` |
+| `log-instructions.sh` | InstructionsLoaded | logs session/cwd + `file_path`/`memory_type`/`load_reason`/`trigger_file_path` (or raw JSON if the payload has none of those) to `~/.claude/logs/instructions-loaded.log` |
+
+## Per-repo setup
+
+This `config/` tree is global (machine-wide). Per-repo agent config — `AGENTS.md`,
+`.claude/settings.json` with superpowers, branch/lint hooks, CI, GitHub Project —
+comes from the `devops/project-init` skill, run once per new repo.

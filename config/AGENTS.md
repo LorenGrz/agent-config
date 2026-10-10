@@ -17,6 +17,7 @@ These instructions are shared by every coding agent (Claude Code, Codex, others)
 - Use `rg` or `rg --files` first for searching.
 - Do not overwrite, revert, or delete user changes unless explicitly asked.
 - Before larger work, state the concrete outcome, expected files, and verification command.
+- New project → `project-init` skill (scaffolds AGENTS.md, .claude/, CI, GitHub Project; works with any AI).
 - Prefer project-local dependencies and scripts over global installs.
 - Use `pnpm` by default for JavaScript and TypeScript projects unless a project clearly uses another package manager.
 - Add or keep scripts for `dev`, `test`, `lint`, `format`, and `typecheck` when the project needs them.
@@ -44,6 +45,7 @@ JavaScript -> Node.js -> TypeScript -> React -> NestJS -> Supabase + WebSockets 
 
 ## Git
 
+- If the repo has `scripts/gh-flow.sh` (repos scaffolded with `project-init`), use it: the repo's AGENTS.md flow (base `dev`, PR + squash) overrides this global workflow.
 - Assume the worktree may already be dirty.
 - Inspect `git status --short` before committing.
 - Prefer non-interactive git commands: inline `-m` messages, never open an editor, never `-i`.
@@ -66,7 +68,7 @@ Detect the default branch first: `git symbolic-ref --short refs/remotes/origin/H
 
 3. **Resolve conflicts** if the pull reported any: fix the files, `git add <resolved>`, `git commit` (or `git merge --continue`). Only then continue.
 
-4. **Branch:** `git checkout -b <type>/<slug>` where `<type>` is `feature`, `refactor`, or `fix` and `<slug>` is a short kebab-case summary.
+4. **Branch:** `git checkout -b <type>/<slug>` where `<type>` is `feat`, `refactor`, or `fix` and `<slug>` is a short kebab-case summary.
 
 5. **Verify the touched layer**, then **stage & commit.** Run the checks for what changed and fix failures before committing:
    - frontend (React/TS): `pnpm lint` (must pass at `--max-warnings 0`) and `pnpm test run`

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# pre-push: refuse to push directly to dev or main. Enabled via
+# `git config core.hooksPath .githooks`. Bypass only intentionally:
+# SKIP_BRANCH_GUARD=1 git push ...
+set -uo pipefail
+
+[ "${SKIP_BRANCH_GUARD:-0}" = 1 ] && exit 0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/dev" ] || [ "$remote_ref" = "refs/heads/main" ]; then
+    echo "pre-push: refusing to push to $remote_ref directly. Use scripts/gh-flow.sh pr/merge (or release for main), or SKIP_BRANCH_GUARD=1 if this is intentional." >&2
+    exit 1
+  fi
+done
+
+exit 0
