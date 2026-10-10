@@ -532,7 +532,6 @@ if [ "$AGENTS_EXISTED" = 0 ] && [ "$CLAUDE_EXISTED" = 1 ] && [ "$CLAUDE_HAS_REAL
   # move that content into AGENTS.md (the single source of truth), replace
   # CLAUDE.md with a thin pointer plus any clearly Claude-only lines.
   claude_body="$(cat CLAUDE.md)"
-  claude_only_lines="$(grep -iE 'claude' CLAUDE.md || true)"
 
   agents_content="# AGENTS.md
 
@@ -550,15 +549,13 @@ $DOC_RULES"
   write_file "AGENTS.md" "$agents_content"
   AGENTS_EXISTED=1
 
+  # Thin pointer only: the whole body now lives in AGENTS.md. Grepping
+  # "claude" lines out of it produced out-of-context fragments, so any
+  # Claude-only instruction is left for a human to re-add.
   claude_pointer="@AGENTS.md
 "
-  if [ -n "$claude_only_lines" ]; then
-    claude_pointer="$claude_pointer
-# Claude-only notes
-
-$claude_only_lines
+  [ -f .agents/CONTEXT.md ] && claude_pointer="${claude_pointer}@.agents/CONTEXT.md
 "
-  fi
   write_file "CLAUDE.md" "$claude_pointer"
   CLAUDE_HANDLED=1
 elif [ "$AGENTS_EXISTED" = 0 ]; then
