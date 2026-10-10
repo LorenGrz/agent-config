@@ -50,6 +50,22 @@ A new agent session should understand this project from these files alone, in th
 - PR titles are Conventional Commits (`feat: ...`, `fix: ...`, `refactor: ...`, `chore: ...`) - the squash merge uses the PR title as the commit message.
 - `main` only changes via `scripts/gh-flow.sh release` (a `dev` -> `main` PR, merged with a merge commit).
 
+### Workflow contract (where each rule is enforced)
+
+These rules live in several places. Changing one (base branch, branch naming, merge strategy, required checks, commit format) means updating **every** row below in the same PR, plus an ADR in `docs/decisions/`. A rule that changes in only one place is a bug.
+
+| Rule | Documented | Enforced by |
+|---|---|---|
+| No direct commits/pushes to `dev`/`main` | this section | `.claude/hooks/guard-branch.sh`, `.githooks/pre-push`, GitHub branch protection |
+| Branch naming `feat\|fix\|refactor/<issue>-<slug>` | this section | `scripts/gh-flow.sh start` |
+| PR to `dev`, squash merge, delete branch | this section | `scripts/gh-flow.sh pr\|merge`, repo merge settings |
+| Conventional Commit PR titles | this section | `.github/workflows/pr-title.yml` |
+| Lint/typecheck/test/build must pass | Definition of done | `.github/workflows/ci.yml` (`ci` check, required by branch protection), `scripts/gh-flow.sh pr` |
+| Releases `dev` -> `main` | this section | `scripts/gh-flow.sh release` |
+| Issues tracked in the Project | Project backlog | `.github/ISSUE_TEMPLATE/*.yml` (`projects:`), `scripts/gh-flow.sh issue` |
+
+GitHub-side settings (branch protection, merge strategy) are not in the repo: change them with `gh` and record the change in the ADR. CI warns (`scripts/docs-check.sh`) when a PR touches an enforcement file without touching `AGENTS.md`.
+
 ## Engineering standards
 
 Mechanical rules live in `eslint.config.*`, `tsconfig*.json`, and `.github/workflows/ci.yml` - this section is what no linter catches.
