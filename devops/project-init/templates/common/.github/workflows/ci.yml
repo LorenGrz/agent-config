@@ -22,7 +22,27 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm run --if-present format:check
-      - run: pnpm run --if-present lint -- --max-warnings 0
+      - run: pnpm run --if-present lint --max-warnings 0
       - run: pnpm run --if-present typecheck
       - run: pnpm run --if-present test
       - run: pnpm run --if-present build
+
+      # Advisory only: surfaces known-vulnerable dependencies without
+      # blocking the required `ci` check branch protection relies on.
+      - run: pnpm audit --audit-level high
+        continue-on-error: true
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # gitleaks/gitleaks-action@v2 is free for personal GitHub accounts (no
+      # GITLEAKS_LICENSE needed) but stops working once GitHub drops the
+      # Node 20 runtime it's built on; v3 is the Node 24 replacement with the
+      # same inputs/behavior - see github.com/gitleaks/gitleaks-action.
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

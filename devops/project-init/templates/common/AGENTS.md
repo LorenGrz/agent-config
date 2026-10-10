@@ -39,7 +39,31 @@ Single source of truth for humans and AI agents (Codex, Cursor, Claude, others) 
 - PR titles are Conventional Commits (`feat: ...`, `fix: ...`, `refactor: ...`, `chore: ...`) - the squash merge uses the PR title as the commit message.
 - `main` only changes via `scripts/gh-flow.sh release` (a `dev` -> `main` PR, merged with a merge commit).
 
+## Engineering standards
+
+Mechanical rules live in `eslint.config.*`, `tsconfig*.json`, and `.github/workflows/ci.yml` - this section is what no linter catches.
+
+- **TypeScript**: strict mode, no `any` (`unknown` + narrow at untrusted boundaries); discriminated unions for state/result variants; keep DTOs separate from domain types. Deeper: `typescript-code-quality`.
+- **Validation**: validate every external input (HTTP, env, storage, third-party) at the boundary before it reaches business logic; never trust a shared type as runtime validation.
+- **Errors**: typed result objects or domain-specific error classes; preserve cause when wrapping; never leak stack traces or internals through a public API.
+- **API contracts**: request/response DTOs at the boundary, consistent machine-readable error shapes, backward-compatible changes. Deeper: `api-contract-design`.
+- **Persistence**: repositories persist/retrieve only, no business decisions; migrations for schema changes; transaction boundaries in the application layer, never spanning an external call. Deeper: `database-persistence-patterns`.
+- **Security & secrets**: every repo here is public - never commit `.env`, keys, or credentials; read secrets from env vars; authorize from the authenticated principal server-side, never a client-supplied id. Deeper: `auth-security-basics`.
+- **LLM-facing code** (only if this app sends untrusted text to an LLM): separate instructions from data, validate model output against a schema, least-privilege tools, human approval for high-risk actions. Deeper: `prompt-injection-defense`.
+- **Testing**: behavior over implementation, name by `should <expected> when <condition>`, mock at the boundary, cover happy path + edge cases + errors. Deeper: `unit-test-generator` to write, `execute-test-suite` to run and fix.
+- **Commits**: Conventional Commits (`type(scope): subject`), one logical change per commit. Deeper: `conventional-commit-generator`.
+- **Docs**: update this file and `.agents/CONTEXT.md` in the same session anything here changes (stack, scripts, architecture, known issues).
+
 {{STACK_CONVENTIONS}}
+
+## Definition of done
+
+- [ ] `pnpm lint` passes with `--max-warnings 0`
+- [ ] `pnpm typecheck` passes
+- [ ] `pnpm test` passes, and new behavior shipped with a test
+- [ ] `pnpm build` passes
+- [ ] `AGENTS.md` / `.agents/CONTEXT.md` updated if stack, scripts, or architecture changed
+- [ ] No secrets, keys, or credentials in the diff
 
 ## Known issues
 

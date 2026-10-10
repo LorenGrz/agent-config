@@ -73,6 +73,15 @@ substitute() {
 # Copy every file under $1 (templates/common or templates/<stack>) into $DIR,
 # substituting placeholders. Skips AGENTS.md and AGENTS.stack.md - those are
 # assembled separately by generate_agents_md.
+#
+# eslint.config.js/.mjs gets one more check before the normal skip-if-exists:
+# `pnpm create vite`/`pnpm create next-app` run *before* this script and may
+# already have written their own eslint.config.* at the same path (vite's
+# ships oxlint instead so this never collides there in practice; next's
+# --eslint flag does collide). If that file doesn't carry this skill's own
+# marker comment yet, it's still the generator's untouched default - overlay
+# it. If it does carry the marker, a previous `init.sh` run (or the user)
+# already owns it, so the normal "exists -> skip" rule applies.
 copy_template_tree() {
   local src_root="$1"
   [ -d "$src_root" ] || return 0
@@ -83,8 +92,13 @@ copy_template_tree() {
     [ "$rel" = "AGENTS.stack.md" ] && continue
     dest="$DIR/$rel"
     if [ -e "$dest" ] && [ "$FORCE" != 1 ]; then
-      echo "skip $rel (exists)"
-      continue
+      if { [ "$rel" = "eslint.config.js" ] || [ "$rel" = "eslint.config.mjs" ]; } \
+        && ! grep -q "Written by the project-init skill" "$dest" 2>/dev/null; then
+        : # generator's untouched default - fall through and overlay it
+      else
+        echo "skip $rel (exists)"
+        continue
+      fi
     fi
     mkdir -p "$(dirname "$dest")"
     substitute < "$file" > "$dest"
@@ -95,9 +109,16 @@ copy_template_tree() {
 
 # Build AGENTS.md from templates/common/AGENTS.md, inserting
 # templates/<stack>/AGENTS.stack.md at the {{STACK_CONVENTIONS}} marker line.
+#
+# `create-next-app` (Next 16+) writes its own short AGENTS.md with a
+# nextjs-agent-rules block before this script ever runs. That block's own
+# comment says `next dev` re-adds it automatically, so overlaying this
+# skill's AGENTS.md on top of it loses nothing - the block comes back the
+# first time the generated project is run. Only skip if the existing file is
+# already this skill's own AGENTS.md (same marker string as the template).
 generate_agents_md() {
   local dest="$DIR/AGENTS.md"
-  if [ -e "$dest" ] && [ "$FORCE" != 1 ]; then
+  if [ -e "$dest" ] && [ "$FORCE" != 1 ] && grep -q "Single source of truth for humans and AI agents" "$dest" 2>/dev/null; then
     echo "skip AGENTS.md (exists)"
     return
   fi
@@ -114,19 +135,29 @@ generate_agents_md() {
   echo "wrote AGENTS.md"
 }
 
-# Print (or, with --install, run) the pnpm add -D command for the ESLint
-# plugins the stack's eslint config needs. nestjs/node-ts get no override.
+# Print (or, with --install, run) the pnpm add -D command for the devDependencies
+# the stack's eslint.config.*/tsconfig.json need. react-vite and next get the
+# same oxlint-override treatment `pnpm create vite` already needed: the
+# generator's own lint default (oxlint, or next's own eslint-config-next) is
+# superseded by a flat config carrying the typescript-code-quality rules.
+# `nest new` now also defaults to oxlint with no eslint.config.mjs at all, so
+# nestjs gets the same override. node-ts has no generator, so it additionally
+# needs a pinned `typescript` (typescript-eslint doesn't support >=6.1 yet)
+# and `@types/node` for the tsconfig.json this skill ships for that stack.
 print_or_install_eslint_deps() {
   local -a deps=()
   case "$STACK" in
     react-vite)
-      deps=(eslint @eslint/js globals typescript-eslint eslint-plugin-react-hooks eslint-plugin-react-refresh eslint-plugin-react-you-might-not-need-an-effect)
+      deps=(eslint @eslint/js globals typescript-eslint eslint-plugin-react-hooks eslint-plugin-react-refresh eslint-plugin-react-you-might-not-need-an-effect eslint-plugin-jsx-a11y)
       ;;
     next)
-      deps=(eslint-plugin-react-hooks eslint-plugin-react-you-might-not-need-an-effect)
+      deps=(eslint-plugin-react-hooks eslint-plugin-react-you-might-not-need-an-effect eslint-plugin-jsx-a11y)
       ;;
-    *)
-      return 0
+    nestjs)
+      deps=(eslint @eslint/js globals typescript-eslint)
+      ;;
+    node-ts)
+      deps=(eslint @eslint/js globals typescript-eslint "typescript@^5" @types/node)
       ;;
   esac
   local cmd="pnpm add -D ${deps[*]}"
@@ -149,7 +180,7 @@ case "$STACK" in
     SCRIPTS=( [dev]="next dev" [test]="vitest" [lint]="eslint ." [typecheck]="tsc --noEmit" [format]="prettier --write ." ["format:check"]="prettier --check ." )
     ;;
   nestjs)
-    SCRIPTS=( [dev]="nest start --watch" [test]="jest" [lint]='eslint "{src,apps,libs,test}/**/*.ts" --fix' [typecheck]="tsc --noEmit" [format]='prettier --write "src/**/*.ts"' ["format:check"]='prettier --check "src/**/*.ts"' )
+    SCRIPTS=( [dev]="nest start --watch" [test]="vitest run" [lint]='eslint "{src,apps,libs,test}/**/*.ts" --fix' [typecheck]="tsc --noEmit" [format]='prettier --write "src/**/*.ts"' ["format:check"]='prettier --check "src/**/*.ts"' )
     ;;
   node-ts)
     SCRIPTS=( [dev]="tsx src/index.ts" [test]="vitest" [lint]="eslint ." [typecheck]="tsc --noEmit" [format]="prettier --write ." ["format:check"]="prettier --check ." )
@@ -157,9 +188,9 @@ case "$STACK" in
 esac
 
 # Report which of the six canonical scripts are missing from package.json.
-# For react-vite/next, a "lint" script that doesn't invoke eslint (e.g. the
-# vite scaffold's default `oxlint`) counts as needing an update, since the
-# generated eslint.config.js/.mjs only takes effect through eslint.
+# For react-vite/next/nestjs, a "lint" script that doesn't invoke eslint (e.g.
+# the vite/nest scaffolds' default `oxlint`) counts as needing an update,
+# since the generated eslint.config.js/.mjs only takes effect through eslint.
 report_scripts() {
   local pkg="$DIR/package.json"
   [ -f "$pkg" ] || { echo "no package.json found at $pkg, skipping script check"; return; }
@@ -170,7 +201,7 @@ report_scripts() {
     current="$(jq -r --arg n "$name" '.scripts[$n] // empty' "$pkg")"
     if [ -z "$current" ]; then
       needs+=("$name")
-    elif [ "$name" = "lint" ] && { [ "$STACK" = "react-vite" ] || [ "$STACK" = "next" ]; } && [[ "$current" != *eslint* ]]; then
+    elif [ "$name" = "lint" ] && { [ "$STACK" = "react-vite" ] || [ "$STACK" = "next" ] || [ "$STACK" = "nestjs" ]; } && [[ "$current" != *eslint* ]]; then
       needs+=("$name")
     fi
   done
@@ -214,9 +245,37 @@ ensure_package_manager() {
   echo "set packageManager = pnpm@$ver"
 }
 
+# Ensure strict/noUncheckedIndexedAccess/noImplicitOverride/noFallthroughCasesInSwitch
+# are set in the project's tsconfig. Delegates the actual edit to
+# ensure-tsconfig-strict.js, which uses the project's own `typescript` package
+# to parse the (possibly JSONC, comment-carrying) file safely and only inserts
+# flags that are missing - see that script for why. node-ts isn't listed:
+# templates/node-ts/tsconfig.json already ships every flag turned on.
+ensure_tsconfig_strict() {
+  local tsconfig_path
+  case "$STACK" in
+    react-vite) tsconfig_path="$DIR/tsconfig.app.json" ;;
+    next|nestjs) tsconfig_path="$DIR/tsconfig.json" ;;
+    node-ts) return 0 ;;
+  esac
+
+  if [ ! -f "$tsconfig_path" ]; then
+    echo "no tsconfig found at $tsconfig_path, skipping strictness check"
+    return
+  fi
+
+  if [ "$INSTALL" != 1 ]; then
+    echo "Run with --install to ensure strict/noUncheckedIndexedAccess/noImplicitOverride/noFallthroughCasesInSwitch are set in $(basename "$tsconfig_path")."
+    return
+  fi
+
+  node "$SKILL_DIR/scripts/ensure-tsconfig-strict.js" "$tsconfig_path" "$DIR"
+}
+
 copy_template_tree "$COMMON_DIR"
 generate_agents_md
 copy_template_tree "$STACK_DIR"
 print_or_install_eslint_deps
 report_scripts
+ensure_tsconfig_strict
 ensure_package_manager
