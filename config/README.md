@@ -1,20 +1,29 @@
 # config/ — portable Claude Code configuration
 
-Tracked here, symlinked into `~/.claude/` / `~/.codex/` so each agent loads it —
-`install.sh` at the repo root creates/repairs all of these:
+`install.sh` at the repo root generates/symlinks all of these into `~/.claude/` /
+`~/.codex/` so each agent loads them, combined with your personal profile:
 
 ```
-~/.claude/CLAUDE.md  -> ~/.agents/skills/config/CLAUDE.md
-~/.claude/rules      -> ~/.agents/skills/config/rules
-~/.claude/hooks      -> ~/.agents/skills/config/hooks
-~/.claude/agents     -> ~/.agents/skills/config/agents
-~/.codex/AGENTS.md   -> ~/.agents/skills/config/AGENTS.md
+~/.claude/CLAUDE.md  -> generated: @<repo>/config/AGENTS.md, @<repo>/config/profiles/<name>.md, @<repo>/config/CLAUDE.md
+~/.codex/AGENTS.md   -> generated: <repo>/config/AGENTS.md + <repo>/config/profiles/<name>.md, concatenated
+~/.claude/rules      -> symlink: <repo>/config/rules
+~/.claude/hooks      -> symlink: <repo>/config/hooks
+~/.claude/agents     -> symlink: <repo>/config/agents
 ```
 
-`AGENTS.md` holds the agent-agnostic instructions (read by Codex and other agents); `CLAUDE.md` is
-`@~/.agents/skills/config/AGENTS.md` plus Claude Code-only sections (skills, agent routing).
+`AGENTS.md` and `CLAUDE.md` here are **generic** — shareable with anyone who clones this
+repo, no names or personal paths. `AGENTS.md` holds the agent-agnostic instructions (read by
+Codex and other agents, concatenated with your profile); `CLAUDE.md` holds Claude Code-only
+sections (skills, agent routing) and is never imported by `AGENTS.md` itself — the generated
+`~/.claude/CLAUDE.md` imports both plus your profile, in that order.
 
-Edit here, commit, push, then `git -C ~/projects/claude-skills pull` for the showcase clone.
+**`profiles/`** — personal content, one file per person. `_template.md` is the commented
+template; copy it to `<name>.md` and fill it in (identity, preferred language, GitHub owner,
+learning stage, your own project/tool paths, OS settings repo, ...). Never add personal
+content to `AGENTS.md` or `CLAUDE.md` above — add it to your profile instead.
+
+Edit here, commit, push; keep any personal mirror clone you maintain in sync yourself (not
+tracked by this repo).
 
 **Also tracked:**
 

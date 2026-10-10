@@ -1,13 +1,16 @@
 # agent-config
 
-Lorenzo Graizzaro's personal **agent config + skills hub**: one repo that configures every
-coding AI he uses (Claude Code, Codex CLI, Cursor, Google Antigravity/Gemini) the same way,
-plus the on-demand skill library they all share.
+Lorenzo Graizzaro's **agent config + skills hub**, built to be portable: one repo that
+configures every coding AI anyone uses (Claude Code, Codex CLI, Cursor, Google
+Antigravity/Gemini) the same way, plus the on-demand skill library they all share. Clone it
+and point your own agent at it — personal content (names, paths, learning stage, GitHub
+owner) lives only in `config/profiles/<your-name>.md`, never in the shared files.
 
 Two things live here, and they're both "always available, loaded only when needed":
 
 - **Config** (`config/`) — instructions, path-scoped rules, lifecycle hooks, and the three
-  model-pinned subagents. Symlinked into `~/.claude/` and `~/.codex/` by `install.sh`.
+  model-pinned subagents. Generated/symlinked into `~/.claude/` and `~/.codex/` by
+  `install.sh`.
 - **Skills** (category directories below) — `SKILL.md` files loaded on demand when their
   `description` matches the task, mirrored flat into `~/.claude/skills` by `sync.sh`.
 
@@ -16,46 +19,95 @@ for the second, per-project layer (`project-init`) that does the actual enforcem
 
 ## Install
 
+Pick **one** method per machine — they overlap and aren't meant to be combined.
+
+### Method 1 — `install.sh` (full: config + rules + hooks + subagents + skills)
+
 ```bash
 git clone https://github.com/LorenGrz/agent-config ~/.agents/skills
-~/.agents/skills/install.sh
+~/.agents/skills/install.sh --dry-run    # preview, changes nothing
+~/.agents/skills/install.sh --profile <your-name>
 ```
+
+Inside a Claude Code or Codex session opened in the clone, you can instead just ask your
+agent to "install this repo" — see `AGENTS.md` and the `agent-config-setup` skill, which
+implement the same guided flow (dry-run → resolve/create your profile → confirm → install →
+verify).
+
+`--profile` picks `config/profiles/<name>.md` to import into your generated
+`~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`. No existing profile and no `--profile`? It
+tries `gh api user --jq .login`; if that doesn't match an existing profile either, it copies
+`config/profiles/_template.md` for you to fill in, or falls back to using the template
+directly if `gh` isn't available. Fill in your own profile — see
+`config/profiles/_template.md` — rather than editing `config/AGENTS.md`/`config/CLAUDE.md`,
+which stay generic for everyone who clones this repo.
 
 Re-run `install.sh` any time — it is idempotent and never deletes a real file (see
 [Install / update workflow](#install--update-workflow)).
+
+### Method 2 — Claude Code plugin marketplace (skills + agents + hooks only)
+
+```bash
+claude plugin marketplace add LorenGrz/agent-config
+claude plugin install agent-config@agent-config
+```
+
+Gets you the skill library, the three subagents, and the generic lifecycle hooks (not
+`guard-omarchy` or the cost-tracking status line — those stay `install.sh`-only). It does
+**not** get you path-scoped rules (rules aren't a Claude Code plugin component at all) or
+the generated `CLAUDE.md`/`AGENTS.md`/`settings.json` merge — use Method 1 for those.
 
 ## Repository layout
 
 ```
 .
-├── install.sh            # creates/repairs all symlinks, merges settings.json, runs sync.sh
-├── sync.sh                # rebuilds the flat ~/.claude/skills mirror from <category>/<skill>/
-├── README.md               # this file
+├── AGENTS.md              # map for an agent working IN this repo (install flow, conventions)
+├── CLAUDE.md               # @AGENTS.md + Claude Code-only pointer to agent-config-setup
+├── install.sh                # generates CLAUDE.md/AGENTS.md, symlinks rules/hooks/agents,
+│                               merges settings.json, runs sync.sh — see --profile below
+├── sync.sh                    # rebuilds the flat ~/.claude/skills mirror from <category>/<skill>/
+├── README.md                   # this file
 │
-├── config/                 # global, agent-facing config — see config/README.md
-│   ├── AGENTS.md            # agent-agnostic instructions (Codex reads this directly)
-│   ├── CLAUDE.md            # @AGENTS.md + Claude Code-only sections, kept ≤60 lines
-│   ├── settings.base.json   # sanitized base merged into ~/.claude/settings.json
-│   ├── agents/               # scout.md, worker.md, reasoner.md — model-pinned subagents
-│   ├── rules/                # path-scoped conventions (typescript.md, react.md, ...)
-│   ├── hooks/                # lifecycle shell scripts wired in settings.base.json
-│   └── rulesync/             # multi-AI generation for Cursor / Antigravity — see below
+├── .claude-plugin/              # plugin marketplace (skills + agents + hooks only — see Install)
+│   ├── marketplace.json
+│   └── plugin.json
+├── hooks/
+│   └── hooks.json                # plugin hooks (generic subset of config/hooks/*.sh)
+│
+├── config/                     # global, agent-facing config — see config/README.md
+│   ├── AGENTS.md                # generic, shareable instructions (no personal content)
+│   ├── CLAUDE.md                # Claude Code-only sections, kept ≤60 lines, also generic
+│   ├── profiles/                  # personal content, one file per person
+│   │   ├── _template.md             # commented template — copy this to get started
+│   │   └── loren.md                 # Lorenzo's own profile (identity, paths, stage, ...)
+│   ├── settings.base.json         # sanitized base merged into ~/.claude/settings.json
+│   ├── agents/                     # scout.md, worker.md, reasoner.md — model-pinned subagents
+│   ├── rules/                      # path-scoped conventions (typescript.md, react.md, ...)
+│   ├── hooks/                       # lifecycle shell scripts wired in settings.base.json
+│   └── rulesync/                     # multi-AI generation for Cursor / Antigravity — see below
 │
 ├── docs/
-│   └── decisions/            # ADRs for this hub's own structure (0001-single-repo.md, ...)
+│   └── decisions/                 # ADRs for this hub's own structure (0001-single-repo.md, ...)
 │
-├── aws/                    # AWS skills, folded in via `git subtree` (ADR 0001)
-├── development/            # building features (React, Next.js, NestJS, TS quality, ...)
-├── devops/                 # repo/release lifecycle — includes project-init (see below)
-├── quality/                # review and tests
-├── security/               # auth, prompt-injection defense
-├── productivity/           # non-code deliverables (CV, email, meeting notes, ...)
-├── meta/                   # how Loren works (roadmap-coach, team-*-agent, ...)
+├── aws/                        # AWS skills, folded in via `git subtree` (ADR 0001)
+├── development/                # building features (React, Next.js, NestJS, TS quality, ...)
+├── devops/                     # repo/release lifecycle — includes project-init (see below)
+├── quality/                    # review and tests
+├── security/                   # auth, prompt-injection defense
+├── productivity/               # non-code deliverables (CV, email, meeting notes, ...)
+├── meta/                       # workflow/process skills, incl. agent-config-setup (see Install)
 │
 ├── apexlang -> ~/projects/oracle-skills/apex/apexlang   # external, gitignored
 ├── omarchy -> /usr/share/omarchy/.../omarchy             # external, ships with Omarchy
 └── diagnose-crash -> /usr/share/omarchy/.../diagnose-crash
 ```
+
+Profiles: everything personal (identity, preferred language, GitHub owner, learning stage,
+your own project/tool paths) lives in `config/profiles/<your-name>.md`, never in
+`config/AGENTS.md`/`config/CLAUDE.md` — those two are imported by `install.sh` into every
+agent session and must stay shareable with anyone who clones this repo. Copy
+`config/profiles/_template.md` to get started, or let `install.sh`/the
+`agent-config-setup` skill offer to do it for you.
 
 ## Categories
 
@@ -67,7 +119,7 @@ Re-run `install.sh` any time — it is idempotent and never deletes a real file 
 | `devops/` | `conventional-commit-generator`, `project-init`, `repository-context-maintainer`, `run-docker-environment` |
 | `security/` | `auth-security-basics`, `prompt-injection-defense` |
 | `productivity/` | `ats-resume-formatting`, `cv-linkedin-optimizer`, `meeting-notes-organizer`, `presentation-prep`, `professional-email-drafter` |
-| `meta/` | `codex-workflows`, `english-prompt-coach`, `roadmap-coach`, `team-architect-agent`, `team-implementer-agent`, `team-reviewer-agent` |
+| `meta/` | `agent-config-setup`, `codex-workflows`, `english-prompt-coach`, `roadmap-coach`, `team-architect-agent`, `team-implementer-agent`, `team-reviewer-agent` |
 | external (symlinked, not vendored) | `apexlang` (Oracle APEX), `omarchy`, `diagnose-crash` (ship with Omarchy) |
 
 Each skill's `SKILL.md` has the one-line purpose in its `description` frontmatter; browse
@@ -100,15 +152,20 @@ Hooks, concretely (event → script):
 | `Stop` | `stop-git-status.sh` | shows uncommitted changes when in a git repo |
 | `InstructionsLoaded` | `log-instructions.sh` | logs what got loaded to `~/.claude/logs/instructions-loaded.log` |
 
-Symlink map (`install.sh` creates/repairs these; see `config/README.md` for the full list):
+The plugin marketplace method (below) ships the last four as a generic subset
+(`hooks/hooks.json`) and omits `guard-omarchy.sh` (desktop-specific) and the cost-tracking
+status line (untracked, machine-local).
+
+Generated files + symlink map (`install.sh` creates/repairs these; see `config/README.md`
+for the full list — `<repo>` is wherever you cloned this):
 
 ```
-~/.claude/CLAUDE.md ──┐
-~/.claude/rules ───────┼──► ~/.agents/skills/config/{CLAUDE.md,rules,hooks,agents}
-~/.claude/hooks ───────┤
+~/.claude/CLAUDE.md  (generated — @-imports <repo>/config/{AGENTS.md,profiles/<name>.md,CLAUDE.md})
+~/.codex/AGENTS.md   (generated — <repo>/config/AGENTS.md + your profile, concatenated)
+~/.claude/rules ───────┐
+~/.claude/hooks ───────┼──► <repo>/config/{rules,hooks,agents}
 ~/.claude/agents ──────┘
-~/.codex/AGENTS.md ───────► ~/.agents/skills/config/AGENTS.md
-~/.claude/skills/<name> ──► ~/.agents/skills/<category>/<name>/   (flat mirror, via sync.sh)
+~/.claude/skills/<name> ──► <repo>/<category>/<name>/   (flat mirror, via sync.sh)
 ```
 
 ### Per-project — `project-init`, once per real repo
@@ -176,7 +233,7 @@ more tokens than doing it directly.
 
 | Gets | Via | Scope |
 |---|---|---|
-| Codex CLI | `~/.codex/AGENTS.md` symlink (install.sh) *or* rulesync (redundant for this file — see ADR 0002) | full `AGENTS.md` |
+| Codex CLI | `~/.codex/AGENTS.md` generated file (install.sh) *or* rulesync (redundant for this file — see ADR 0002) | full `AGENTS.md` + your profile |
 | Cursor | rulesync global skills/subagents/mcp/hooks/permissions; **not** global rules (unsupported upstream) | `config/rulesync/` proof skills only |
 | Google Antigravity (Gemini-family CLI/IDE) | rulesync global rules + skills (`~/.gemini/GEMINI.md`, `~/.gemini/config/rules/*.md`, `~/.gemini/antigravity-cli/skills/`) | full `AGENTS.md` + `config/rules/*.md` + proof skills |
 | Claude Code | native: `config/CLAUDE.md`, skills mirror, rules, hooks, subagents | everything |
@@ -211,19 +268,19 @@ actually supports in global mode — it is not symmetric across tools.
 ## Install / update workflow
 
 ```bash
-./install.sh --dry-run          # print planned actions only
-./install.sh                    # create/repair symlinks, run sync.sh, merge settings.json
-./install.sh --with-rulesync    # also generate Cursor/Antigravity config
-./install.sh --with-rtk         # also install rtk + `rtk init -g`
+./install.sh --dry-run                      # print planned actions only
+./install.sh --profile <name>                # generate CLAUDE.md/AGENTS.md, symlinks, settings.json
+./install.sh --profile <name> --with-rulesync # also generate Cursor/Antigravity config
+./install.sh --profile <name> --with-rtk      # also install rtk + `rtk init -g`
 ```
 
 Adding or changing a skill:
 
 ```bash
-# 1. create/edit ~/.agents/skills/<category>/<skill>/SKILL.md
+# 1. create/edit <repo>/<category>/<skill>/SKILL.md
 # 2. ./sync.sh                              # refresh ~/.claude/skills
 # 3. git add -A && git commit -m "..." && git push
-# 4. git -C ~/projects/claude-skills pull   # keep the public showcase clone current
+# 4. keep any personal mirror clone you maintain in sync (your profile, not this file)
 ```
 
 ### Troubleshooting

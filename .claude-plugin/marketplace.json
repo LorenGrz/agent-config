@@ -1,0 +1,15 @@
+{
+  "name": "agent-config",
+  "description": "Lorenzo Graizzaro's agent-config skill library and subagents, shared via a Claude Code plugin marketplace.",
+  "owner": {
+    "name": "Lorenzo Graizzaro",
+    "url": "https://github.com/LorenGrz"
+  },
+  "plugins": [
+    {
+      "name": "agent-config",
+      "source": "./",
+      "description": "Skill library (aws/development/devops/meta/productivity/quality/security), the scout/worker/reasoner subagents, and generic lifecycle hooks. For rules and the generated CLAUDE.md/AGENTS.md, use install.sh instead — see the README."
+    }
+  ]
+}

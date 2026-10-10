@@ -2,8 +2,11 @@
 # init.sh - overlay project-init's templates onto a project directory.
 #
 # Usage: init.sh --stack <react-vite|next|nestjs|node-ts> --name <name>
-#                 [--dir <path>] [--owner LorenGrz] [--project-number N]
+#                 [--dir <path>] [--owner <owner>] [--project-number N]
 #                 [--force] [--install]
+#
+# --owner defaults to `gh api user --jq .login` (if gh is authenticated),
+# else `git config github.user`, else it is required.
 #
 # Idempotent: never overwrites an existing file unless --force. Prints
 # "skip <path> (exists)" for anything it leaves alone.
@@ -12,13 +15,15 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage: init.sh --stack <react-vite|next|nestjs|node-ts> --name <name>
-               [--dir <path>] [--owner LorenGrz] [--project-number N]
+               [--dir <path>] [--owner <owner>] [--project-number N]
                [--force] [--install]
 
   --stack            react-vite | next | nestjs | node-ts (required)
   --name             project name, used as {{PROJECT}} (required)
   --dir              target directory (default: cwd)
-  --owner            GitHub owner, used as {{OWNER}} (default: LorenGrz)
+  --owner            GitHub owner, used as {{OWNER}} (default: `gh api user
+                     --jq .login` if gh is authenticated, else `git config
+                     github.user`; required if neither resolves)
   --project-number   GitHub Project number, used as {{PROJECT_NUMBER}} (default: TBD)
   --force            overwrite files that already exist
   --install          actually install ESLint devDependencies and write
@@ -27,10 +32,22 @@ Usage: init.sh --stack <react-vite|next|nestjs|node-ts> --name <name>
 EOF
 }
 
+# resolve_owner: gh (if authenticated) -> git config github.user -> empty.
+resolve_owner() {
+  local login
+  if command -v gh >/dev/null 2>&1; then
+    login="$(gh api user --jq .login 2>/dev/null || true)"
+    [ -n "$login" ] && { printf '%s' "$login"; return; }
+  fi
+  login="$(git config --get github.user 2>/dev/null || true)"
+  [ -n "$login" ] && { printf '%s' "$login"; return; }
+  printf ''
+}
+
 STACK=""
 NAME=""
 DIR="$(pwd)"
-OWNER="LorenGrz"
+OWNER=""
 PROJECT_NUMBER="TBD"
 FORCE=0
 INSTALL=0
@@ -54,6 +71,11 @@ case "$STACK" in
   *) echo "Error: --stack must be one of react-vite|next|nestjs|node-ts" >&2; exit 1 ;;
 esac
 [ -n "$NAME" ] || { echo "Error: --name is required" >&2; exit 1; }
+
+if [ -z "$OWNER" ]; then
+  OWNER="$(resolve_owner)"
+fi
+[ -n "$OWNER" ] || { echo "Error: --owner is required (gh is not authenticated and git config github.user is not set)" >&2; exit 1; }
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMMON_DIR="$SKILL_DIR/templates/common"

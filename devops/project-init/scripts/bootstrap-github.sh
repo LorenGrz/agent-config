@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
 # bootstrap-github.sh - the external (GitHub) half of project setup. Run
-# from the project directory, one step at a time, each confirmed by Loren
-# before it runs for real. Use --dry-run to preview the exact commands.
+# from the project directory, one step at a time, each confirmed by the
+# user before it runs for real. Use --dry-run to preview the exact commands.
+#
+# --owner defaults to `gh api user --jq .login` (if gh is authenticated),
+# else `git config github.user`, else it is required.
 #
 # Usage: bootstrap-github.sh [--dry-run] <repo|dev|settings|labels|project|protect|all>
-#                             [--owner LorenGrz] [--name <repo>] [--visibility public]
+#                             [--owner <owner>] [--name <repo>] [--visibility public]
 set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: bootstrap-github.sh [--dry-run] <step> [--owner LorenGrz] [--name <repo>] [--visibility public]
+Usage: bootstrap-github.sh [--dry-run] <step> [--owner <owner>] [--name <repo>] [--visibility public]
 
 Steps (idempotent where gh supports a read check):
   repo      gh repo create, pushes the initial commit
@@ -26,8 +29,20 @@ Steps (idempotent where gh supports a read check):
 EOF
 }
 
+# resolve_owner: gh (if authenticated) -> git config github.user -> empty.
+resolve_owner() {
+  local login
+  if command -v gh >/dev/null 2>&1; then
+    login="$(gh api user --jq .login 2>/dev/null || true)"
+    [ -n "$login" ] && { printf '%s' "$login"; return; }
+  fi
+  login="$(git config --get github.user 2>/dev/null || true)"
+  [ -n "$login" ] && { printf '%s' "$login"; return; }
+  printf ''
+}
+
 DRY_RUN=0
-OWNER="LorenGrz"
+OWNER=""
 NAME=""
 VISIBILITY="public"
 STEP=""
@@ -46,6 +61,8 @@ done
 
 [ -n "$STEP" ] || { usage; exit 1; }
 NAME="${NAME:-$(basename "$PWD")}"
+[ -n "$OWNER" ] || OWNER="$(resolve_owner)"
+[ -n "$OWNER" ] || { echo "Error: --owner is required (gh is not authenticated and git config github.user is not set)" >&2; exit 1; }
 export DRY_RUN
 
 run() { # run "<shell command as one string>"
@@ -147,7 +164,7 @@ run_step() {
 
 if [ "$STEP" = "all" ]; then
   if [ "$DRY_RUN" != "1" ]; then
-    echo "bootstrap-github.sh all only runs with --dry-run. Run each step individually and have Loren confirm before each one." >&2
+    echo "bootstrap-github.sh all only runs with --dry-run. Run each step individually and confirm before each one." >&2
     exit 1
   fi
   for s in repo dev settings labels project protect; do

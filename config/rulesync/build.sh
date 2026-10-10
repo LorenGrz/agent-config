@@ -30,7 +30,7 @@ frontmatter = (
     "---\n"
     "root: true\n"
     'targets: ["*"]\n'
-    'description: "Loren\'s global agent instructions — shared by every coding agent"\n'
+    'description: "Shared global agent instructions — applied by every coding agent"\n'
     'globs: ["**/*"]\n'
     "---\n\n"
 )

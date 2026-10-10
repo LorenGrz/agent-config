@@ -1,20 +1,21 @@
-@~/.agents/skills/config/AGENTS.md
-
 # Claude Code specifics
 
-Adapts Claude Code to Loren's workflow. Persistent personal preferences.
+Claude Code-only additions on top of `AGENTS.md` (imported separately by the file that
+pulls this one in — do not re-import it here).
 
 ## Skills
 
 Invoke a matching skill before acting (`/<name>` or auto-activate); load only what the task needs.
 
-Skills live in `/home/loren/.agents/skills/<category>/<skill>/`, mirrored flat into `/home/loren/.claude/skills` by `sync.sh` — run it after adding/moving a skill. Hub = github.com/LorenGrz/agent-config; edit there, commit, push, then `git -C /home/loren/projects/claude-skills pull` (public showcase clone). AWS skills live in `aws/` inside the hub (folded in via git subtree, not a separate repo). Oracle APEX (`apexlang`) and Omarchy/`diagnose-crash` stay as external symlinks.
+Skills live in this repo's `<category>/<skill>/` directories, mirrored flat into
+`~/.claude/skills` by `sync.sh` — run it after adding/moving a skill. Edit skills in the
+repo, commit, push; see the repo's own README for the remote and any mirror clones you keep
+in sync (profile-specific, not listed here).
 
-Path-scoped rules in `/home/loren/.claude/rules/` load automatically when Claude touches a matching file (`paths:` frontmatter); some skills carry the same frontmatter.
+Path-scoped rules in `~/.claude/rules/` load automatically when Claude touches a matching file (`paths:` frontmatter); some skills carry the same frontmatter.
 
 Routing (by skill name):
 
-- PDF work: MarkItDown first — `/home/loren/projects/markitdown/.venv/bin/markitdown`.
 - React build/refactor: `react-scalable-frontend`. React review: `react-component-validator`.
 - TypeScript quality: `typescript-code-quality`. New repo scaffolding: `project-init`. Tooling upgrade of an existing project: `typescript-project-starter`.
 - Roadmap planning: `roadmap-coach`. NestJS modules: `nest-module-generator`. Next.js SSR: `nextjs-ssr-frontend`.
@@ -22,9 +23,9 @@ Routing (by skill name):
 - Tests: `unit-test-generator` to write, `execute-test-suite` to run and fix.
 - Debugging: `debug-assistant`. Docs: `code-documenter`. Regex: `regex-builder-explainer`. Commits: `conventional-commit-generator`.
 - Security/auth: `auth-security-basics` only when relevant.
-- Omarchy/Linux desktop: `omarchy` before editing terminal, Hyprland, Waybar, Mako, Walker, theme, or desktop config.
 - AWS (`aws/`): `sam-deploy`, `lambda-patterns`, `iam-least-privilege` (always least privilege), `cost-optimizer`, `serverless-scanner` (migration analysis).
-- Oracle APEX: `apexlang` for `.apx` apps and APEXlang workflows.
+- Desktop/OS config, PDFs, and other local-tool skills: check your profile
+  (`config/profiles/<your-name>.md`) for any paths or skills specific to your own setup.
 
 Rule files are guidance; hard constraints live in each repo's ESLint/CI/hooks (see `project-init`).
 

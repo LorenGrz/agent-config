@@ -16,7 +16,7 @@ JavaScript -> Node.js -> TypeScript -> React -> NestJS -> Supabase + WebSockets 
 
 - Keep roadmap tasks small and aligned to the current stage.
 - Do not introduce later frameworks just to make a project look advanced.
-- Current roadmap repo: `/home/loren/projects/roadmap`.
-- Repository context file: `/home/loren/projects/roadmap/.agents/CONTEXT.md`.
+- Current roadmap repo: `~/projects/roadmap`.
+- Repository context file: `~/projects/roadmap/.agents/CONTEXT.md`.
 - Long-term product track: Study Tracker / Developer Progress Tracker (StudyQuest).
 - Portfolio work should explain problem solved, stack, architecture decisions, lessons learned, repository link, and live demo when available.

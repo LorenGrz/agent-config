@@ -1,11 +1,16 @@
-# Loren Personal Agent Instructions
+# Agent Instructions
 
-These instructions are shared by every coding agent (Claude Code, Codex, others). Treat them as persistent personal preferences. Agent-specific additions live in each agent's own file (e.g. `CLAUDE.md`), never duplicated here.
+Shared instructions for every coding agent (Claude Code, Codex, others). Agent-specific
+additions live in each agent's own file (e.g. `CLAUDE.md`), never duplicated here.
+Personal preferences (identity, language, learning stage, your own project paths) live in
+your profile (`config/profiles/<your-name>.md`, imported alongside this file) — not here.
 
 ## Communication
 
 - Answer in the user's language by default.
-- For every user message written partly or fully in English, add a 2-line-maximum `English note` (one main issue) plus a `Better` line with the prompt phrased correctly, written only in English (the `english-prompt-coach` skill, when available).
+- If the active profile enables English coaching, add a 2-line-maximum `English note` (one
+  main issue) plus a `Better` line with the prompt phrased correctly, written only in
+  English, for every user message written partly or fully in English.
 - Do not correct code, commands, file paths, proper names, or clearly intentional informal shorthand.
 - Keep explanations concise and practical.
 - Use direct engineering language. Avoid cheerleading, vague reassurance, and unnecessary theory.
@@ -27,7 +32,9 @@ These instructions are shared by every coding agent (Claude Code, Codex, others)
 
 ## Roadmap
 
-Learning roadmap and current stage: see the `roadmap-coach` skill (`meta/roadmap-coach/references/roadmap-detail.md`) or `/home/loren/projects/roadmap`.
+Learning roadmap and current stage are personal — see your profile
+(`config/profiles/<your-name>.md`) and the `roadmap-coach` skill
+(`meta/roadmap-coach/references/roadmap-detail.md`).
 
 ## Git
 
@@ -35,7 +42,7 @@ Learning roadmap and current stage: see the `roadmap-coach` skill (`meta/roadmap
 - Assume the worktree may already be dirty.
 - Inspect `git status --short` before committing.
 - Prefer non-interactive git commands: inline `-m` messages, never open an editor, never `-i`.
-- Never use destructive commands like `git reset --hard` or checkout-based reverts unless Loren explicitly asks.
+- Never use destructive commands like `git reset --hard` or checkout-based reverts unless the user explicitly asks.
 - Never `git push --force` to `main`/`master` or any shared branch.
 
 ### GitHub push workflow (always follow when pushing to main/master or handling a GitHub remote)
@@ -60,7 +67,7 @@ Detect the default branch first: `git symbolic-ref --short refs/remotes/origin/H
    - frontend (React/TS): `pnpm lint` (must pass at `--max-warnings 0`) and `pnpm test run`
    - backend (Kotlin/Spring): `./gradlew test`
    - other stacks: the project's own lint + typecheck + unit tests
-   Then review `git status --short`; if unrelated changes are mixed in, ask Loren before continuing. Otherwise `git add .` then `git commit -m "<Conventional Commit subject>"`.
+   Then review `git status --short`; if unrelated changes are mixed in, ask before continuing. Otherwise `git add .` then `git commit -m "<Conventional Commit subject>"`.
 
 6. **Push the branch:** `git push -u origin <type>/<slug>`.
 
@@ -84,10 +91,11 @@ If the repo has branch protection or a PR-based flow, stop after step 6 and open
 - If tests or installs need network access, explain the blocker and ask for permission when the tool requires it.
 - Report what was changed, what was verified, and anything not verified.
 
-## Omarchy And System Config
+## OS and desktop config
 
-- For end-user Omarchy customization, edit safe user config locations such as `~/.config/`, never Omarchy source under `~/.local/share/omarchy/`.
-- If changing OS or desktop config, test locally first.
-- Before pushing OS config changes, ask Loren to confirm the change works.
-- Omarchy settings repo: `/home/loren/projects/omarchy-settings`.
-- Do not push unrelated or pre-existing changes.
+- If a profile names a desktop-environment settings repo (e.g. Omarchy), edit only safe
+  user config locations (such as `~/.config/`), never the desktop environment's own source
+  tree.
+- If changing OS or desktop config, test locally first, and confirm the change works before
+  pushing to the settings repo named in the profile. Do not push unrelated or pre-existing
+  changes.

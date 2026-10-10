@@ -1,59 +1,56 @@
 ---
 name: codex-workflows
-description: Reuse Loren's Codex and local agent workflows. Use when work involves existing Codex skills, roadmap projects, Omarchy config, PDFs, screenshots, browser checks, security reviews, TypeScript/React/NestJS code, or migration from Codex to Claude.
+description: Example personal workflow-adapter skill (Loren's own setup, kept as a reference pattern). Reuses an existing Codex/local agent setup from Claude Code. Use when work involves existing Codex skills, migration from Codex to Claude, or other skill roots listed in your profile.
 ---
 
 # Codex Workflows Adapter
 
-Use this skill to adapt Claude Code to Loren's existing Codex setup without duplicating stale instructions.
+Adapts Claude Code to an existing Codex setup without duplicating stale instructions. This
+skill is Loren's own example, not a generic tool — if you're adapting it for your own
+setup, copy it, point it at your own skill roots, and list them in your profile
+(`config/profiles/<your-name>.md`) instead of hardcoding them here.
 
 ## First Step
 
 Identify the task category, then read only the relevant source skill files before acting.
 
-Skill roots:
-
-- `/home/loren/.codex/skills`
-- `/home/loren/.agents/skills`
-- `/home/loren/.local/share/omarchy/default/omarchy-skill/SKILL.md`
+Skill roots: this hub (`~/.agents/skills`, i.e. wherever this repo is cloned) plus any
+extra roots listed under "Codex workflow adapter" in your profile
+(`config/profiles/<your-name>.md`) — e.g. `~/.codex/skills` or an OS-specific skill path.
 
 ## Routing
 
-- New JS/TS project or standard scripts: `/home/loren/.agents/skills/typescript-project-starter/SKILL.md`
-- Roadmap planning or learning project scope: `/home/loren/.agents/skills/roadmap-coach/SKILL.md`
-- React frontend implementation/refactor: `/home/loren/.agents/skills/react-scalable-frontend/SKILL.md`
-- React component lifecycle review: `/home/loren/.agents/skills/react-component-validator/SKILL.md`
-- TypeScript quality: `/home/loren/.agents/skills/typescript-code-quality/SKILL.md`
-- API contracts: `/home/loren/.agents/skills/api-contract-design/SKILL.md`
-- Auth/security implementation: `/home/loren/.agents/skills/auth-security-basics/SKILL.md`
-- Security review by explicit request: `/home/loren/.codex/skills/security-best-practices/SKILL.md`
-- NestJS module generation: `/home/loren/.agents/skills/nest-module-generator/SKILL.md`
-- Persistence/database work: `/home/loren/.agents/skills/database-persistence-patterns/SKILL.md`
-- Docker-backed local environment: `/home/loren/.agents/skills/run-docker-environment/SKILL.md`
-- Test-suite execution and fix loop: `/home/loren/.agents/skills/execute-test-suite/SKILL.md`
-- Repository context maintenance: `/home/loren/.agents/skills/repository-context-maintainer/SKILL.md`
-- Omarchy desktop/system config: `/home/loren/.local/share/omarchy/default/omarchy-skill/SKILL.md`
-- PDFs: `/home/loren/.codex/skills/pdf/SKILL.md`
-- Browser automation: `/home/loren/.codex/skills/playwright/SKILL.md` or browser plugin skill if installed.
+- New JS/TS project or standard scripts: `typescript-project-starter` skill in this hub.
+- Roadmap planning or learning project scope: `roadmap-coach` skill in this hub.
+- React frontend implementation/refactor: `react-scalable-frontend` skill in this hub.
+- React component lifecycle review: `react-component-validator` skill in this hub.
+- TypeScript quality: `typescript-code-quality` skill in this hub.
+- API contracts: `api-contract-design` skill in this hub.
+- Auth/security implementation: `auth-security-basics` skill in this hub.
+- Security review by explicit request: check your profile's extra skill roots.
+- NestJS module generation: `nest-module-generator` skill in this hub.
+- Persistence/database work: `database-persistence-patterns` skill in this hub.
+- Docker-backed local environment: `run-docker-environment` skill in this hub.
+- Test-suite execution and fix loop: `execute-test-suite` skill in this hub.
+- Repository context maintenance: `repository-context-maintainer` skill in this hub.
+- Desktop/OS config, PDFs, browser automation: check your profile's extra skill roots.
 
 ## Rules
 
 - Load skills progressively. Do not paste every skill into context.
 - Prefer local project scripts and local dependencies.
 - Preserve user changes. Do not revert unrelated files.
-- For Omarchy config, test first and ask before pushing to `/home/loren/projects/omarchy-settings`.
-- For roadmap work, keep the next step small and aligned with the sequence:
+- For desktop/OS config, test first and ask before pushing to the settings repo named in
+  your profile.
+- For roadmap work, keep the next step small and aligned with the sequence in your profile
+  or the `roadmap-coach` skill.
 
-```text
-JavaScript -> Node.js -> TypeScript -> React -> NestJS -> Supabase + WebSockets -> Next.js -> React Native
-```
+## Startup Check For A Personal Roadmap Repo
 
-## Startup Check For Roadmap Repo
+If your profile names a roadmap repo, read, when relevant:
 
-When working in `/home/loren/projects/roadmap`, read:
-
-- `/home/loren/projects/roadmap/README.md`
-- `/home/loren/projects/roadmap/.agents/CONTEXT.md`
+- `<roadmap-repo>/README.md`
+- `<roadmap-repo>/.agents/CONTEXT.md`
 - `pnpm-workspace.yaml` if package installation or workspace behavior is involved.
 
 Remember: `node_modules/` must stay untracked.

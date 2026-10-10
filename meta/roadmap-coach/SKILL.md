@@ -22,7 +22,7 @@ For the detailed current stage, roadmap repo paths, and long-term product track,
 
 ## Workflow
 
-1. Identify the user's current stage from the repo, request, and `/home/loren/projects/roadmap/README.md` when relevant.
+1. Identify the user's current stage from the repo, request, and `~/projects/roadmap/README.md` when relevant.
 2. State whether the requested work fits the current stage or is a deliberate preview of a later stage.
 3. Prefer the smallest useful project or exercise that teaches the intended concept.
 4. Define a concrete deliverable and verification command before implementing larger work.

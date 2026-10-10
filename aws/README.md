@@ -12,23 +12,11 @@ Claude Code skills for working with AWS serverless infrastructure. Each skill is
 | [`iam-least-privilege`](./iam-least-privilege/SKILL.md) | Creating IAM users/roles/policies — deploy-user pattern, execution roles, policy templates, setup scripts |
 | [`cost-optimizer`](./cost-optimizer/SKILL.md) | Keeping AWS costs minimal — free tier, arm64, log retention, billing alarms, cost traps |
 
-## Usage in CLAUDE.md
+## Usage
 
-```md
-## AWS Skills
-
-Before writing any AWS infrastructure, SAM template, Lambda handler, or IAM policy:
-- Deployments: read `~/projects/aws-skills/sam-deploy/SKILL.md`
-- Lambda code: read `~/projects/aws-skills/lambda-patterns/SKILL.md`
-- IAM policies: read `~/projects/aws-skills/iam-least-privilege/SKILL.md`
-- Cost review: read `~/projects/aws-skills/cost-optimizer/SKILL.md`
-- Migration analysis: read `~/projects/aws-skills/serverless-scanner/SKILL.md`
-```
-
-## Setup on a new machine
-
-```bash
-git clone https://github.com/LorenGrz/aws-skills ~/projects/aws-skills
-```
-
-Then update `~/.claude/CLAUDE.md` to reference the paths above.
+These skills live inside this hub at `aws/<skill>/SKILL.md` (folded in via `git subtree`,
+see `docs/decisions/0001-single-repo.md`) — not a separate repo. `install.sh`'s `sync.sh`
+step mirrors them flat into `~/.claude/skills`, so Claude Code loads them by name
+(`sam-deploy`, `lambda-patterns`, `iam-least-privilege`, `cost-optimizer`,
+`serverless-scanner`) once the hub itself is installed. No extra clone or setup step is
+needed.

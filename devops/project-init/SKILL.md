@@ -9,7 +9,7 @@ Scaffold a new repo once, correctly, instead of re-deciding workflow per project
 
 ## Workflow
 
-1. **Ask**: stack (`react-vite` | `next` | `nestjs` | `node-ts`), project name, visibility (default `public`). Remind Loren: never commit secrets, all his repos are public.
+1. **Ask**: stack (`react-vite` | `next` | `nestjs` | `node-ts`), project name, visibility (default `public`). Remind the user: never commit secrets.
 
 2. **Generate the app, if the target dir is empty**, with the stack's own official generator, then overlay this skill's templates:
    - react-vite: `pnpm create vite@latest <name> --template react-ts`
@@ -18,8 +18,9 @@ Scaffold a new repo once, correctly, instead of re-deciding workflow per project
    - node-ts: follow the `typescript-project-starter` skill instead of a generator
    Then run:
    ```
-   bash scripts/init.sh --stack <stack> --name <name> --dir <path> --owner LorenGrz [--project-number N] --install
+   bash scripts/init.sh --stack <stack> --name <name> --dir <path> [--owner <owner>] [--project-number N] --install
    ```
+   `--owner` defaults to `gh api user --jq .login` (if `gh` is authenticated), then `git config github.user`; pass it explicitly if neither resolves.
    Without `--install`, `init.sh` only prints the commands needed (ESLint devDependencies, missing package.json scripts); nothing is installed or written to `package.json` scripts.
 
 3. **Local git setup** (do this, do not delegate it):
@@ -28,14 +29,14 @@ Scaffold a new repo once, correctly, instead of re-deciding workflow per project
    - `git config core.hooksPath .githooks`
    - `git add -A && git commit -m "chore: initial project setup"`
 
-4. **External steps, one at a time, each confirmed by Loren before running.** Never hand these to a background agent - they touch GitHub and real resources.
+4. **External steps, one at a time, each confirmed by the user before running.** Never hand these to a background agent - they touch GitHub and real resources. `--owner` defaults the same way as `init.sh`'s (gh login, then `git config github.user`); pass it explicitly if neither resolves.
    ```
-   bash scripts/bootstrap-github.sh repo     --owner LorenGrz --name <name> --visibility public
-   bash scripts/bootstrap-github.sh dev      --owner LorenGrz --name <name>
-   bash scripts/bootstrap-github.sh settings --owner LorenGrz --name <name>
-   bash scripts/bootstrap-github.sh labels   --owner LorenGrz --name <name>
-   bash scripts/bootstrap-github.sh project  --owner LorenGrz --name <name>
-   bash scripts/bootstrap-github.sh protect  --owner LorenGrz --name <name>
+   bash scripts/bootstrap-github.sh repo     [--owner <owner>] --name <name> --visibility public
+   bash scripts/bootstrap-github.sh dev      [--owner <owner>] --name <name>
+   bash scripts/bootstrap-github.sh settings [--owner <owner>] --name <name>
+   bash scripts/bootstrap-github.sh labels   [--owner <owner>] --name <name>
+   bash scripts/bootstrap-github.sh project  [--owner <owner>] --name <name>
+   bash scripts/bootstrap-github.sh protect  [--owner <owner>] --name <name>
    ```
    `project` prints the new Project number and the follow-up commit needed to replace `TBD`/`{{PROJECT_NUMBER}}` in the repo (`.github/ISSUE_TEMPLATE/*.yml`, `AGENTS.md`, `.agents/CONTEXT.md`); make that commit yourself, it is not automatic.
    Run with `--dry-run` first any time you want to preview the exact `gh`/`git` commands without touching GitHub.

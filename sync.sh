@@ -5,19 +5,20 @@
 # Claude Code only discovers ~/.claude/skills/<name>/SKILL.md (direct children),
 # so category folders live in the source tree and the mirror stays flat.
 #
-# Source of truth: ~/.agents/skills  (override with SKILLS_HUB)
-# Mirror:          ~/.claude/skills   (override with CLAUDE_SKILLS_MIRROR)
+# Source of truth: this repo's own root (override with SKILLS_HUB)
+# Mirror:           ~/.claude/skills  (override with CLAUDE_SKILLS_MIRROR)
 #
 # Safe to run repeatedly. Step 1 repoints any mirror symlink whose target no
 # longer matches the hub copy — this also catches mirror links that used to
-# point straight at /home/loren/projects/aws-skills/* and repoints them at
+# point straight at a sibling `aws-skills` checkout and repoints them at
 # aws/<skill> once that skill exists in the hub. Links that have no matching
 # <category>/<skill>/SKILL.md in the hub (omarchy, diagnose-crash, apexlang)
 # and real dirs are left alone.
 
 set -euo pipefail
 
-HUB="${SKILLS_HUB:-$HOME/.agents/skills}"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HUB="${SKILLS_HUB:-$HERE}"
 MIRROR="${CLAUDE_SKILLS_MIRROR:-$HOME/.claude/skills}"
 
 [ -d "$HUB" ] || { echo "hub not found: $HUB" >&2; exit 1; }
