@@ -22,7 +22,7 @@ find_up() { # find_up <start-dir> <relative-path> -> prints path if found
 case "$ext" in
   ts|tsx|js|jsx|mjs|cjs)
     # Prefer prettier if the project has it; otherwise use the project's eslint --fix
-    # (BookLibre frontend has no prettier — eslint is the formatter).
+    # (some frontends have no prettier — eslint is the formatter then).
     p="$(find_up "$dir" node_modules/.bin/prettier || true)"
     e="$(find_up "$dir" node_modules/.bin/eslint || true)"
     if [ -n "$p" ]; then

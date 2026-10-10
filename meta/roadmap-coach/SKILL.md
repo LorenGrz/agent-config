@@ -7,6 +7,8 @@ description: Keep Loren's learning and project work aligned to the full-stack Ty
 
 Keep work scoped to the current learning stage and convert broad ideas into small, verifiable steps.
 
+For the detailed current stage, roadmap repo paths, and long-term product track, load `references/roadmap-detail.md`.
+
 ## Roadmap Order
 
 1. JavaScript fundamentals

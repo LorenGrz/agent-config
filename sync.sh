@@ -8,8 +8,12 @@
 # Source of truth: ~/.agents/skills  (override with SKILLS_HUB)
 # Mirror:          ~/.claude/skills   (override with CLAUDE_SKILLS_MIRROR)
 #
-# Safe to run repeatedly. Only touches symlinks that point into the hub;
-# external symlinks (aws-skills, omarchy) and real dirs are left alone.
+# Safe to run repeatedly. Step 1 repoints any mirror symlink whose target no
+# longer matches the hub copy — this also catches mirror links that used to
+# point straight at /home/loren/projects/aws-skills/* and repoints them at
+# aws/<skill> once that skill exists in the hub. Links that have no matching
+# <category>/<skill>/SKILL.md in the hub (omarchy, diagnose-crash, apexlang)
+# and real dirs are left alone.
 
 set -euo pipefail
 
@@ -22,6 +26,9 @@ mkdir -p "$MIRROR"
 created=0 updated=0 pruned=0
 
 # 1. Link every skill found two levels deep in the hub (<category>/<skill>/SKILL.md).
+#    This includes aws/<skill>/SKILL.md (cost-optimizer, iam-least-privilege,
+#    lambda-patterns, sam-deploy, serverless-scanner) now that aws/ is folded
+#    into the hub via git subtree.
 while IFS= read -r skill_md; do
   dir="$(dirname "$skill_md")"
   name="$(basename "$dir")"
