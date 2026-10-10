@@ -1,8 +1,9 @@
 @AGENTS.md
+@.agents/CONTEXT.md
 
 # Claude-only notes
 
-AGENTS.md above is the source of truth for this repo. This file only maps the workflow phases to superpowers skills for Claude Code sessions.
+AGENTS.md above is the source of truth for this repo. This file only maps the workflow phases to superpowers skills for Claude Code sessions. `.agents/CONTEXT.md` is imported too - it's capped at ~60 lines (see its own comment) specifically so every session can afford to load it automatically instead of needing a separate read.
 
 | Phase | Skill |
 |---|---|

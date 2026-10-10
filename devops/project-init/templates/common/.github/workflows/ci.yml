@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
 
@@ -31,6 +33,16 @@ jobs:
       # blocking the required `ci` check branch protection relies on.
       - run: pnpm audit --audit-level high
         continue-on-error: true
+
+      # Advisory only: reminds a PR that touches deps/env/docker/workflows/
+      # top-level folders, but not AGENTS.md/.agents/CONTEXT.md/docs/, to
+      # update docs in the same PR. fetch-depth: 0 above so origin/<base_ref>
+      # exists to diff against; the script itself always exits 0.
+      - name: docs-check
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: bash scripts/docs-check.sh
 
   secret-scan:
     runs-on: ubuntu-latest

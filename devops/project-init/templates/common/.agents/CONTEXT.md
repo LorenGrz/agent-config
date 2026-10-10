@@ -1,5 +1,7 @@
 # {{PROJECT}} - Repository Context
 
+<!-- Keep this file <= 60 lines: CLAUDE.md imports it into every session automatically. -->
+
 ## Purpose
 
 <!-- One or two sentences: what this project does and for whom. -->
@@ -18,7 +20,7 @@ See AGENTS.md for the full table (dev/test/lint/typecheck/format/format:check).
 
 ## Conventions
 
-See the "{{STACK_CONVENTIONS}}" section inside AGENTS.md for stack-specific rules.
+See the stack conventions section in AGENTS.md for stack-specific rules.
 
 ## Known issues
 

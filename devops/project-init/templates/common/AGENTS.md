@@ -2,6 +2,17 @@
 
 Single source of truth for humans and AI agents (Codex, Cursor, Claude, others) working on **{{PROJECT}}**. If this file and the code disagree, the code wins - fix this file.
 
+## Documentation map (read this instead of the code)
+
+A new agent session should understand this project from these files alone, in this order:
+
+1. `AGENTS.md` (this file) - map, how we work, engineering standards.
+2. `.agents/CONTEXT.md` - current stack/architecture snapshot and repo facts.
+3. `docs/plans/HANDOFF.md` - current state and how to resume, read first if work is mid-flight.
+4. `docs/architecture.md` - overview, modules, data model, key flows, external services, env, deploy.
+5. `docs/decisions/` - ADRs: why a non-trivial trade-off was decided the way it was.
+6. `docs/superpowers/specs/` and `docs/superpowers/plans/` - what is being built and how, per unit of work.
+
 ## Purpose
 
 <!-- One or two sentences: what this project does and for whom. -->
@@ -52,9 +63,18 @@ Mechanical rules live in `eslint.config.*`, `tsconfig*.json`, and `.github/workf
 - **LLM-facing code** (only if this app sends untrusted text to an LLM): separate instructions from data, validate model output against a schema, least-privilege tools, human approval for high-risk actions. Deeper: `prompt-injection-defense`.
 - **Testing**: behavior over implementation, name by `should <expected> when <condition>`, mock at the boundary, cover happy path + edge cases + errors. Deeper: `unit-test-generator` to write, `execute-test-suite` to run and fix.
 - **Commits**: Conventional Commits (`type(scope): subject`), one logical change per commit. Deeper: `conventional-commit-generator`.
-- **Docs**: update this file and `.agents/CONTEXT.md` in the same session anything here changes (stack, scripts, architecture, known issues).
+- **Docs**: see "Documentation rules" below for what gets saved where and when.
 
 {{STACK_CONVENTIONS}}
+
+## Documentation rules
+
+- Every approved spec/plan is saved under `docs/superpowers/specs/` or `docs/superpowers/plans/` before implementation starts. A Claude plan-mode plan (saved outside the repo, in `~/.claude/plans`) must be copied into `docs/superpowers/plans/YYYY-MM-DD-<slug>.md` before work begins.
+- Any decision with a real trade-off (architecture, a hard-to-reverse library/service choice, data model, security trade-off) gets a new ADR in `docs/decisions/` - copy `docs/decisions/0000-template.md`.
+- When work pauses mid-flight, update `docs/plans/HANDOFF.md` before stopping, not after.
+- A PR that changes architecture, env vars, commands, or deploy updates `AGENTS.md`, `.agents/CONTEXT.md`, and `docs/architecture.md` in the same PR.
+- `docs/superpowers/` is committed; `.superpowers/sdd/` (the working ledger) stays gitignored.
+- Keep this file short (~150 lines max) - details belong in `docs/`.
 
 ## Definition of done
 
@@ -62,7 +82,7 @@ Mechanical rules live in `eslint.config.*`, `tsconfig*.json`, and `.github/workf
 - [ ] `pnpm typecheck` passes
 - [ ] `pnpm test` passes, and new behavior shipped with a test
 - [ ] `pnpm build` passes
-- [ ] `AGENTS.md` / `.agents/CONTEXT.md` updated if stack, scripts, or architecture changed
+- [ ] `AGENTS.md` / `.agents/CONTEXT.md` / `docs/architecture.md` updated if stack, scripts, or architecture changed
 - [ ] No secrets, keys, or credentials in the diff
 
 ## Known issues

@@ -20,3 +20,6 @@ Closes #<issue-number>
 - [ ] `pnpm typecheck` passes
 - [ ] `pnpm test` passes
 - [ ] `AGENTS.md` updated if this changes commands, architecture, or conventions
+- [ ] Spec/plan saved in docs/superpowers
+- [ ] ADR added if a trade-off was made
+- [ ] AGENTS.md/CONTEXT.md/architecture.md updated if structure changed
