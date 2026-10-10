@@ -61,6 +61,15 @@
             "command": "bash ~/.claude/hooks/scout-readonly.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/rtk.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [

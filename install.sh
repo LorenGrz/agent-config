@@ -35,8 +35,8 @@
 #
 #   --profile <name> use config/profiles/<name>.md instead of auto-detecting
 #   --dry-run       print planned actions only, change nothing
-#   --with-rtk      also install rtk (https://github.com/rtk-ai/rtk) and run
-#                   `rtk init -g`
+#   --with-rtk      also install rtk (https://github.com/rtk-ai/rtk) (the
+#                   hook is config/hooks/rtk.sh)
 #   --with-rulesync also (re)generate rulesync output for codexcli, geminicli
 #                   and cursor via config/rulesync/
 
@@ -312,11 +312,11 @@ if [ "$WITH_RTK" -eq 1 ]; then
   RTK_CMD='curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh'
   if [ "$DRY_RUN" -eq 1 ]; then
     echo "  [dry-run] $RTK_CMD"
-    echo "  [dry-run] rtk init -g"
+    echo "  (hook already wired: config/hooks/rtk.sh via settings.base.json - no rtk init needed)"
   else
     echo "running: $RTK_CMD"
     sh -c "$RTK_CMD"
-    rtk init -g
+    echo "rtk hook is wired via config/hooks/rtk.sh (settings.base.json); restart Claude Code."
   fi
 fi
 

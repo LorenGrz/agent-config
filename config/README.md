@@ -79,6 +79,7 @@ Path-scoped — each loads only when Claude touches a matching file.
 | `format-file.sh` | PostToolUse | project formatter on the edited file: prettier → eslint `--fix` (TS), `ktlint -F` (Kotlin), `ruff` (Python) |
 | `stop-git-status.sh` | Stop | shows uncommitted changes when in a git repo |
 | `log-instructions.sh` | InstructionsLoaded | logs session/cwd + `file_path`/`memory_type`/`load_reason`/`trigger_file_path` (or raw JSON if the payload has none of those) to `~/.claude/logs/instructions-loaded.log` |
+| `rtk.sh` | PreToolUse (Bash) | hands read-only/verification commands (git status/diff/log, ls, find/grep, lint/test/tsc) to [rtk](https://github.com/rtk-ai/rtk) to compress their output; everything else passes through so the normal permission flow applies (rtk answers `allow`). No-op without rtk |
 
 ## Per-repo setup
 
