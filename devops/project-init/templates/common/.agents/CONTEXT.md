@@ -29,7 +29,7 @@ See the stack conventions section in AGENTS.md for stack-specific rules.
 ## Repo facts
 
 - Owner: {{OWNER}}
-- Base branch: dev (main is release-only)
+- Base branch: dev (main is release-only) — full git rules + where each is enforced: "Workflow contract" in AGENTS.md
 - Project number: {{PROJECT_NUMBER}}
 
 Last validated: {{DATE}}

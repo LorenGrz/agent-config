@@ -86,6 +86,8 @@ EOF
 while IFS= read -r f; do
   case "$f" in
     .github/workflows/*) reasons+=("workflow changed: $f") ;;
+    scripts/gh-flow.sh | .githooks/* | .claude/hooks/* | .claude/settings.json | .github/ISSUE_TEMPLATE/* | .github/PULL_REQUEST_TEMPLATE.md)
+      reasons+=("workflow contract file changed: $f (update the Workflow contract in AGENTS.md)") ;;
   esac
 done <<EOF
 $CHANGED
