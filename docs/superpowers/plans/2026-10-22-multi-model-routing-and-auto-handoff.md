@@ -1,7 +1,7 @@
 # Plan — Neutral `~/.agents` layer, OpenCode-first routing, automatic handoff
 
 Date: 2026-10-22
-Status: approved decisions applied (v2, KISS pass)
+Status: implemented on feat/neutral-layer-routing-handoff (Phase 0 still to run on the real machine)
 ADRs to write: 0006 (neutral layer + routing), 0007 (automatic handoff)
 
 ## Goal
