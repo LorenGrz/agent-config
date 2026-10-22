@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# oc-ask — send cheap work to OpenCode (DeepSeek, GLM, a local model...) so Claude usage is
+# spent only where it matters. Called by Claude Code (see config/CLAUDE.md "Agent Routing").
+#
+#   oc-ask scout "where are the auth hooks wired?"         read-only (OpenCode `plan` agent)
+#   oc-ask work  "implement step 3 of docs/...; run pnpm test"   edits (OpenCode `build` agent)
+#
+# Model: CHEAP_MODEL in ~/.agents/models.env (empty = OpenCode's default). Override per call
+# with OC_MODEL=provider/model.
+#
+# Exit codes: 0 answer printed · 2 usage error · 3 OpenCode unavailable, failed, timed out or
+# returned nothing → the caller falls back to Claude's own agent (scout / worker).
+set -uo pipefail
+
+MODELS_ENV="${AGENT_MODELS_ENV:-$HOME/.agents/models.env}"
+# shellcheck disable=SC1090
+[ -f "$MODELS_ENV" ] && . "$MODELS_ENV"
+
+mode="${1:-}"; shift || true
+prompt="$*"
+case "$mode" in
+  scout) agent=plan ;;
+  work)  agent=build ;;
+  *) echo "usage: oc-ask scout|work \"prompt\"" >&2; exit 2 ;;
+esac
+[ -n "$prompt" ] || { echo "oc-ask: empty prompt" >&2; exit 2; }
+
+command -v opencode >/dev/null 2>&1 || { echo "oc-ask: opencode not installed" >&2; exit 3; }
+
+model="${OC_MODEL:-${CHEAP_MODEL:-}}"
+args=(run --agent "$agent")
+[ -n "$model" ] && args+=(-m "$model")
+
+err="$(mktemp)"; trap 'rm -f "$err"' EXIT
+out="$(timeout "${OC_ASK_TIMEOUT:-300}" opencode "${args[@]}" "$prompt" </dev/null 2>"$err")"
+status=$?
+
+if [ "$status" -ne 0 ] || [ -z "${out//[[:space:]]/}" ]; then
+  echo "oc-ask: opencode failed (exit $status${model:+, model $model}) — fall back to Claude." >&2
+  tail -n 5 "$err" >&2
+  exit 3
+fi
+printf '%s\n' "$out"

@@ -15,19 +15,18 @@ ESLint/CI/hooks (see `project-init`).
 
 ## Agent Routing
 
-Pick the model by task complexity, not by habit:
+Spend Claude usage only where it matters. Cheap tiers go to OpenCode first via `oc-ask`
+(model set in `~/.agents/models.env`); Claude's own agents are the fallback.
 
-- **Opus** (main session / `reasoner`) only reasons and decides — architecture, unknown-cause bugs, plan review, hard-to-reverse calls. Never does worker-type writing.
-- **Sonnet** (`worker`) writes all code/docs from an already-decided plan.
-- **Haiku** (`scout`) does light read-only lookups only.
+| Step | First | Fallback (when `oc-ask` exits 3) |
+|---|---|---|
+| Lookup / inventory / "where is X" | `oc-ask scout "..."` (read-only) | `scout` subagent (Haiku) |
+| Implement an already-decided plan step | `oc-ask work "<step> — acceptance: <cmd>"`, then run `<cmd>` yourself | `worker` subagent (Sonnet) if `<cmd>` fails twice or exit 3 |
+| Decide: architecture, unknown-cause bugs, plan review, hard-to-reverse calls | main session (Opus) / `reasoner` | — |
 
-When superpowers dispatches subagents (`subagent-driven-development`, `executing-plans`, `dispatching-parallel-agents`, `requesting-code-review`), set `subagent_type`:
-
-| Subagent role | subagent_type |
-|---|---|
-| Implementer | `worker` |
-| Spec/code-quality reviewer (routine) | `worker` |
-| Reviewer for security/architecture-critical changes | `reasoner` |
-| File search / inventory | `scout` |
-
-Inline (no subagent) when the change touches ≤3 known files — a cold-start subagent costs more than doing it. Prefer `/clear` between unrelated tasks over `/compact`.
+- `oc-ask work` gets one plan step at a time, with the files to touch and the acceptance
+  command. Never hand it open-ended decisions; always verify its result yourself.
+- Inline (no `oc-ask`, no subagent) when the change touches ≤3 known files.
+- superpowers `subagent_type`: implementer / routine reviewer → `worker`; security- or
+  architecture-critical reviewer → `reasoner`; file search → `scout` (try `oc-ask scout` first).
+- Prefer `/clear` between unrelated tasks over `/compact`.
