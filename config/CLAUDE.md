@@ -22,6 +22,7 @@ Spend Claude usage only where it matters. Cheap tiers go to OpenCode first via `
 |---|---|---|
 | Lookup / inventory / "where is X" | `oc-ask scout "..."` (read-only) | `scout` subagent (Haiku) |
 | Implement an already-decided plan step | `oc-ask work "<step> — acceptance: <cmd>"`, then run `<cmd>` yourself | `worker` subagent (Sonnet) if `<cmd>` fails twice or exit 3 |
+| Large, well-specified implementation (many files, clear acceptance) — only if the `codex` MCP tool exists | `codex` tool: own git worktree, `sandbox: workspace-write`, `approval-policy: never`, acceptance command in the prompt | `worker` (Sonnet) |
 | Decide: architecture, unknown-cause bugs, plan review, hard-to-reverse calls | main session (Opus) / `reasoner` | — |
 
 - `oc-ask work` gets one plan step at a time, with the files to touch and the acceptance
