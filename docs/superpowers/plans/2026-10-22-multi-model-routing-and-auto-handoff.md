@@ -1,253 +1,165 @@
-# Plan — Multi-model routing (Claude + OpenCode + optional Codex) and automatic handoff
+# Plan — Neutral `~/.agents` layer, OpenCode-first routing, automatic handoff
 
 Date: 2026-10-22
-Status: draft, awaiting approval
-Related ADRs (to write): 0006 multi-vendor routing, 0007 automatic handoff
+Status: approved decisions applied (v2, KISS pass)
+ADRs to write: 0006 (neutral layer + routing), 0007 (automatic handoff)
 
 ## Goal
 
-Keep Claude Code (subscription) as the lead for heavy and intermediate work, push cheap
-work to open models (DeepSeek, GLM, Kimi, ...) through OpenCode, optionally use Codex for
-deep implementation, and make the switch between them lossless: when Claude's quota runs
-out, OpenCode (or Codex) picks up from `docs/plans/HANDOFF.md`, which is kept current
-automatically — never by asking the model at the last minute.
+1. Everything (instructions, skills, rules, hooks) lives in one tool-neutral place,
+   `~/.agents/`. Each tool only gets symlinks into it. If a tool breaks or a new one appears,
+   nothing else changes.
+2. Spend Claude usage only where it matters: cheap/mechanical work goes to OpenCode first
+   (DeepSeek & co.), Claude is the fallback and the decision-maker.
+3. When Claude's quota runs out, OpenCode or Codex continue from an up-to-date
+   `docs/plans/HANDOFF.md` without anyone asking for it.
 
-## Non-goals
+Rule for every step: if it isn't needed now, it's out. Cut items are listed at the end.
 
-- No Claude subscription OAuth inside OpenCode, OmniRoute or any other third-party harness
-  (Anthropic consumer terms, Feb/Apr 2026). Claude Code always runs on its own login, which
-  also keeps `/voice` working.
-- No OmniRoute in the default path. It stays an optional, documented gateway for
-  API-key / local providers only.
-- No automatic creation of `HANDOFF.md` in repos that don't have one (only `project-init` /
-  `adopt.sh` create it).
+## Decisions (Loren, 2026-10-22)
 
-## Target routing
+| # | Decision |
+|---|---|
+| 1 | Cheap **scout** tier is read-only. |
+| 2 | Handoff nudge: kept, simplified (see Phase 3). |
+| 3 | Codex runs with approval `never`, sandboxed to a dedicated worktree. |
+| 4 | OpenCode first for **worker** tasks too (not just lookups); Claude Sonnet is the fallback. Model choice is situational — one line to change, no code. Ollama optional, off by default. |
+| 5 | Push from this session: yes. Hub clone moves to `~/projects/agent-config`. |
 
-| Tier | Model | Reached via | Does |
-|---|---|---|---|
-| cheap | DeepSeek / GLM / Kimi (OpenCode Go) or Ollama | `oc-ask` wrapper → `opencode run` | read-only lookups, summaries, inventories — replaces most `scout` (Haiku) use |
-| cheap fallback | Haiku (`scout`) | Claude subagent | only when OpenCode is missing, down, or out of quota |
-| worker | Sonnet (`worker`) | Claude subagent | implements decided plans (unchanged) |
-| deep worker (optional) | GPT Codex | `codex mcp-server` in Claude Code | large, well-specified implementation tasks — only if `codex` is installed and logged in |
-| reasoner | Opus (main / `reasoner`) | Claude | decisions, unknown-cause bugs, plan review (unchanged) |
-| quota-out | OpenCode TUI (Go models) or Codex CLI | opened by hand / Agent Deck | continues from `HANDOFF.md` |
+## Phase 0 — Verify on Loren's machine (one sitting, ~15 min)
 
-## Phase 0 — Verify assumptions (on Loren's machine, before writing code)
+Run these, note results in ADR 0006; any surprise changes the phase that depends on it.
 
-Each item becomes a line in ADR 0006 "verified on <date>" — same discipline as ADR 0002's
-rulesync target check.
+- `claude --version` and the hooks doc: `Stop` input has `stop_hook_active`; JSON
+  `{"decision":"block","reason":…}` continues the turn.
+- `opencode models | grep -iE 'deepseek|glm|kimi'` → pick the default cheap model.
+- OpenCode global instructions path (does it read `~/.config/opencode/AGENTS.md`?).
+- `codex --version`; `codex login status`; whether `notify` runs after each turn.
 
-1. Claude Code hooks: `Stop` input has `stop_hook_active`; `{"decision":"block","reason":…}`
-   continues the turn; `PreCompact` and `SessionEnd` exist and accept `async`; whether a
-   usage-limit stop fires `Stop` or a separate failure event (`StopFailure`?).
-2. OpenCode: plugin event for "turn finished" (`session.idle`?), plugin dir
-   (`~/.config/opencode/plugins/`), global `AGENTS.md` path, whether it reads
-   `~/.claude/skills`, permission keys for a read-only agent (`edit`/`bash`: `deny`).
-3. OpenCode Go model IDs: `opencode models | grep -i -E 'deepseek|glm|kimi'`.
-4. rulesync: exact target name for OpenCode (`opencode`?) via the config schema.
-5. Codex (optional): `codex mcp-server` uses the `codex login` ChatGPT auth; `notify`
-   (or a hooks equivalent) in `~/.codex/config.toml` fires after each turn.
-6. CodeGraph: install command and MCP registration for Claude Code, Codex and OpenCode.
-7. Voice: the settings key for dictation language (so it can live in the profile).
+## Phase 1 — Repo cleanup + neutral layer (`refactor/neutral-agents-layer`)
 
-Verification: a short note per item; anything that fails changes the matching phase below.
+**Repo layout, after:**
 
-## Phase 0.5 — Vendor-neutral layer: `~/.agents/` is the runtime source, tools are adapters
+```
+agent-config/
+├── skills/<category>/<skill>/SKILL.md   (all category dirs moved here with git mv)
+├── config/  AGENTS.md  CLAUDE.md  profiles/  rules/  hooks/  agents/  settings.base.json  models.env
+├── bin/     oc-ask
+├── docs/    decisions/  superpowers/plans/
+├── install.sh   (absorbs sync.sh)
+└── README.md
+```
 
-Principle: no tool-specific file is ever a source. Everything a tool loads is either a
-symlink into `~/.agents/` or generated from it. If one tool breaks or disappears, delete its
-adapters and nothing else changes; a new tool ("pepito") needs one adapter (or a rulesync
-target), not a migration.
+**`~/.agents/` after `install.sh` (all symlinks into the repo, plus one generated file):**
 
-Layers:
+```
+~/.agents/AGENTS.md     generated: config/AGENTS.md + your profile
+~/.agents/skills/<n>    flat links to skills/<category>/<n>   ← Codex + OpenCode read this natively
+~/.agents/rules         → config/rules
+~/.agents/hooks         → config/hooks
+~/.agents/models.env    → config/models.env  (CHEAP_MODEL=..., one line per tier)
+```
 
-1. **Source (git):** this repo, cloned anywhere (`~/projects/agent-config`). Unchanged
-   content, edited by hand.
-2. **Neutral runtime (`~/.agents/`, generated by `install.sh`, owned by the repo):**
+**Per-tool adapters (symlinks only, except Claude's generated CLAUDE.md as today):**
 
-   ```
-   ~/.agents/
-   ├── AGENTS.md            generic instructions + profile, concatenated
-   ├── skills/<name>/       flat mirror of <category>/<skill>/ (sync.sh)
-   ├── rules/*.md           path-scoped rules (paths: frontmatter)
-   ├── hooks/*.sh           tool-agnostic scripts with a normalized CLI (--agent, --cwd, ...)
-   ├── agents/*.md          neutral role definitions (cheap-scout, scout, worker, reasoner,
-   │                        deep-worker) with a `tier:` field instead of a model name
-   ├── models.toml          tier → model per tool (claude: reasoner=opus, worker=sonnet,
-   │                        scout=haiku; opencode: cheap=<Go model>; codex: deep=<model>)
-   └── mcp.toml             one MCP server list (codegraph, codex, ...)
-   ```
+- Claude: `~/.claude/skills → ~/.agents/skills`, `rules → ~/.agents/rules`,
+  `hooks → ~/.agents/hooks`, `agents → config/agents`, generated `CLAUDE.md` imports
+  `~/.agents/AGENTS.md` + `config/CLAUDE.md`.
+- Codex: `~/.codex/AGENTS.md → ~/.agents/AGENTS.md`. Skills: native.
+- OpenCode: global AGENTS path → `~/.agents/AGENTS.md`. Skills: native.
+- Removing a tool = deleting its symlinks. No flag, no generator.
 
-3. **Adapters (per tool, thin):**
+**Cleanup (less to maintain, fewer always-loaded tokens):**
 
-   | Tool | Instructions | Skills | Rules | Agents | Hooks | MCP |
-   |---|---|---|---|---|---|---|
-   | Codex | `~/.codex/AGENTS.md` → `~/.agents/AGENTS.md` | native (`~/.agents/skills`) | rulesync | n/a | `notify` → hooks script | generated into `config.toml` |
-   | OpenCode | global AGENTS path → `~/.agents/AGENTS.md` (verify path) | native (`~/.agents/skills`) | rulesync | generated agent files | plugin → hooks script | generated into `opencode.json` |
-   | Claude Code | generated `~/.claude/CLAUDE.md` (@-imports `~/.agents/AGENTS.md` + Claude-only bits) | `~/.claude/skills` → `~/.agents/skills` | `~/.claude/rules` → `~/.agents/rules` | generated from `agents/*.md` + `models.toml` | `settings.json` wiring → hooks scripts | `claude mcp add` from `mcp.toml` |
-   | Cursor / Antigravity | rulesync (as today) | rulesync | rulesync | — | — | rulesync |
+- Delete `.claude-plugin/` and `hooks/hooks.json`: a second, Claude-only install method
+  that duplicates `install.sh` and contradicts the neutral layer.
+- Delete `meta/codex-workflows`: its job (making Claude see Codex skills) is done by the
+  shared `~/.agents/skills`.
+- Delete `meta/team-architect-agent`, `team-implementer-agent`, `team-reviewer-agent`:
+  duplicate the `reasoner` / `worker` agents, superpowers and `code-review-safety`.
+- `config/CLAUDE.md`: drop the skill-routing list (skills already trigger by their
+  `description`; the list costs tokens every session and drifts).
+- `settings.base.json`: drop the `statusLine` pointing at an untracked script.
+- Merge `sync.sh` into `install.sh` (one entry point).
+- `install.sh`: if the hub is still cloned at `~/.agents/skills`, stop and print the
+  `mv` command to `~/projects/agent-config` (never moves it itself).
+- README: update the install path, layout and tables; remove the plugin method.
 
-Consequences / changes:
+Verification: temp `HOME` → `install.sh --dry-run`, then `install.sh` → `ls -l` shows every
+adapter resolves; Claude Code lists skills; `codex` and `opencode` list the same skills;
+`rm ~/.claude/skills` leaves Codex/OpenCode unaffected.
 
-- **The hub must stop being cloned at `~/.agents/skills`** (current README default): that
-  path is now read natively by Codex and OpenCode as a flat `<name>/SKILL.md` dir, and the
-  repo's category layout doesn't match it. `install.sh` detects an old clone there, tells the
-  user to move it (never moves it itself), and refuses to write `~/.agents/` until it's moved.
-- `sync.sh` targets `~/.agents/skills`; `~/.claude/skills` becomes a single symlink to it.
-- Hook scripts get a normalized interface; each tool's wiring passes its own payload through
-  a tiny per-tool shim (`hooks/adapters/{claude,opencode,codex}`). Hooks are the least
-  portable piece — accepted and documented.
-- Skills keep to the portable core frontmatter (`name`, `description`, optional `license`,
-  `compatibility`, `metadata`); Claude-only fields stay allowed but are flagged by a lint in
-  `sync.sh` (warning, not failure).
-- Model names live only in `models.toml`; agent definitions name a tier. Swapping DeepSeek
-  for something else, or Claude for "pepito", is a one-line change.
-- `install.sh --only <tool>` / `--remove <tool>` to (re)generate or delete one tool's
-  adapters without touching `~/.agents/`.
-- ADR 0008 records this layout.
+## Phase 2 — OpenCode-first routing (`feat/opencode-first`)
 
-Verification: fresh `HOME` in a temp dir → `install.sh` → Codex and OpenCode list the skills
-from `~/.agents/skills`, Claude Code lists them via its symlink; `install.sh --remove claude`
-leaves `~/.agents/` byte-identical and Codex/OpenCode still work.
+One script, one rule, one config line.
 
-## Phase 1 — Automatic handoff (all agents)
+- `config/models.env`: `CHEAP_MODEL=<from Phase 0>`. Change it whenever you want to
+  vary (DeepSeek, GLM, an Ollama model...).
+- `bin/oc-ask` (linked to `~/.local/bin/oc-ask`), ~20 lines:
+  - `oc-ask scout "question"` → `opencode run -m $CHEAP_MODEL --agent plan` (read-only).
+  - `oc-ask work "task + acceptance command"` → `opencode run -m $CHEAP_MODEL --agent build`.
+  - Any failure (not installed, quota, timeout) → exit 3.
+- `config/CLAUDE.md` Agent Routing (replaces current table, stays short):
+  1. Lookups → `oc-ask scout`; on exit 3 → `scout` (Haiku).
+  2. Implementing a decided plan → `oc-ask work`, then run the acceptance command yourself;
+     if it fails twice or exit 3 → `worker` (Sonnet).
+  3. Decisions, unknown-cause bugs, plan review → main session (Opus). Unchanged.
+- `settings.base.json`: allow `Bash(oc-ask *)`.
 
-Two layers, so it works even with zero quota left:
+Verification: `oc-ask scout "where are hooks wired?"` answers; with OpenCode uninstalled it
+exits 3 and Claude falls back to `scout`; `ccusage` shows fewer Sonnet/Haiku tokens over a
+week.
 
-**1a. Deterministic snapshot — no model, no tokens.**
-`config/hooks/handoff-snapshot.sh [agent-name]`:
-- No-op unless cwd is a git repo containing `docs/plans/HANDOFF.md`.
-- Rewrites only the block between `<!-- handoff:auto:start -->` and
-  `<!-- handoff:auto:end -->` (appends the block if missing; never touches the narrative):
-  timestamp, agent that last ran (claude / opencode / codex), branch, HEAD, last 5 commits,
-  `git status --short`, `git diff --stat`, newest file in `docs/superpowers/plans/`.
-- Atomic write (temp file + `mv`), `flock` so parallel agents don't clobber each other.
-- Wired to: Claude `Stop` (async), `PreCompact`, `SessionEnd`; OpenCode plugin on turn end;
-  Codex `notify`.
+## Phase 3 — Automatic handoff (`feat/auto-handoff`)
 
-**1b. Narrative nudge — Claude only, throttled.**
-`config/hooks/handoff-nudge.sh` on `Stop`:
-- Exit 0 if `stop_hook_active` is true (no loops) or there's no `HANDOFF.md`.
-- Hash `HEAD + git status --porcelain`; exit 0 if unchanged since the last nudge or if the
-  last nudge was < `HANDOFF_NUDGE_MINUTES` (default 20) ago. State in
-  `.git/agent-handoff/` (never committed).
-- Otherwise block once with: "Rewrite Current state / Active plan / Pending work in
-  docs/plans/HANDOFF.md (≤15 lines total, replace, don't append). Don't touch the auto block."
-- Cost bound: at most one short extra turn per 20 min of real changes.
+One script, `config/hooks/handoff.sh`, two modes:
 
-**1c. Read side.** `config/AGENTS.md` Working Style: "If `docs/plans/HANDOFF.md` exists,
-read it before anything else when resuming work." (Project template already says it.)
+- **`snapshot`** — no model, no tokens, works with zero quota. If the repo has
+  `docs/plans/HANDOFF.md`, rewrite only the block between `<!-- handoff:auto -->` markers:
+  date, which agent, branch, last 5 commits, `git status --short`, newest plan file.
+  Called by: Claude `Stop`; Codex `notify` (if installed); OpenCode — only if Phase 0 shows a
+  one-line way to run a command after each turn, otherwise skipped (snapshot from Claude/Codex
+  is enough).
+- **`nudge`** (Claude `Stop` only) — the "nudge" is the hook asking Claude, right before
+  it stops, to rewrite the human part (*Current state / Pending work*, ≤15 lines). It fires
+  only if files changed since the last nudge **and** ≥20 min passed (state in `.git/`), and
+  never twice in a row (`stop_hook_active`). Cost: one short extra turn at most every 20 min.
+- Add the marker block to the project-init `HANDOFF.md` template and `adopt.sh`.
+- `config/AGENTS.md`: "When resuming, read `docs/plans/HANDOFF.md` first if it exists."
 
-**1d. Templates.** Add the auto-block markers to
-`devops/project-init/templates/common/docs/plans/HANDOFF.md` and to `adopt.sh`'s generated
-content.
+Verification: temp git repo with a `HANDOFF.md` → `snapshot` writes the block, is
+idempotent, leaves the rest byte-identical; `nudge` with `stop_hook_active:true` → silent;
+changed tree → block JSON; again within 20 min → silent.
 
-Files: `config/hooks/handoff-snapshot.sh`, `config/hooks/handoff-nudge.sh`,
-`config/settings.base.json`, `hooks/hooks.json` (plugin subset: both scripts),
-`config/opencode/plugins/handoff.js`, `config/codex/config.fragment.toml`,
-`config/AGENTS.md`, project-init template + `adopt.sh`.
+## Phase 4 — Codex (optional, `feat/codex-tier`)
 
-Verification:
-- `bats`-style shell test in a temp git repo: snapshot writes the block, is idempotent,
-  leaves narrative byte-identical, no-ops without `HANDOFF.md`.
-- Nudge: fixture JSON with `stop_hook_active: true` → exit 0; changed tree → block JSON;
-  second call inside 20 min → exit 0.
-- Manual: edit a file in Claude Code, end the turn, check the auto block; same in OpenCode.
+Only if `codex` is installed and logged in; otherwise `install.sh` prints one line and skips.
 
-## Phase 2 — OpenCode as the cheap tier
+- `claude mcp add -s user codex -- codex mcp-server` (skip if present).
+- `config/CLAUDE.md`: "Large, well-specified implementation → `codex` MCP tool, sandbox
+  `workspace-write`, approval `never`, in its own worktree." `never` = Codex runs commands
+  without stopping to ask; the sandbox limits it to that worktree folder, so worst case you
+  delete the worktree.
+- `notify` in `~/.codex/config.toml` → `handoff.sh snapshot` (manual line documented in the
+  README; no TOML merger).
 
-- `install.sh --with-opencode` (idempotent, backs up like the rest):
-  - generates `~/.config/opencode/opencode.json` from `config/opencode/opencode.base.json`:
-    OpenCode Go provider, optional Ollama provider (`localhost:11434/v1`), MCP servers
-    (CodeGraph if enabled), the handoff plugin, and a read-only `cheap-scout` agent
-    (edits and mutating bash denied);
-  - links the global `AGENTS.md` (+ profile) for OpenCode;
-  - links skills if OpenCode reads them natively, otherwise relies on rulesync (Phase 5).
-- `config/bin/oc-ask` (symlinked to `~/.local/bin/oc-ask`):
-  `oc-ask [--model M] "question"` → `opencode run --attach $OC_URL --agent cheap-scout -m
-  ${M:-$AGENT_CHEAP_MODEL} --format json` → prints only the final answer, with a timeout.
-  Starts `opencode serve` on demand if nothing is listening. Exit code 3 = "unavailable or
-  out of quota" so Claude falls back to `scout`.
-- `config/CLAUDE.md` Agent Routing: lookups/inventories → `oc-ask` first; `scout` only on
-  exit 3. Keep the file ≤60 lines (ADR 0004).
-- `settings.base.json` permissions.allow: `Bash(oc-ask *)`.
-- Profile: `AGENT_CHEAP_MODEL` default (picked from Phase 0 step 3).
+Verification: `claude mcp list` shows `codex`; a toy task lands in its worktree and passes.
 
-Verification: `oc-ask "list the files that define hooks"` returns an answer with
-`--model` set to a Go model; with OpenCode stopped it exits 3; inside Claude Code a lookup
-request goes through `oc-ask` (check the transcript); `ccusage` shows fewer Haiku calls.
+## Phase 5 — Docs (`docs/neutral-layer`, can ride with each phase)
 
-## Phase 3 — Codex (optional, only if installed)
+ADR 0006, ADR 0007, README (install, layout, routing table, "out of Claude quota" runbook:
+open `opencode` in the same repo → it reads `AGENTS.md` + `HANDOFF.md` → continue; cost
+section: Claude Pro + OpenCode Go baseline).
 
-- `install.sh` detects `codex` on PATH and a valid login; if present:
-  - `claude mcp add -s user codex -- codex mcp-server` (skip if already registered);
-  - merges `config/codex/config.fragment.toml` into `~/.codex/config.toml` (handoff
-    `notify`, CodeGraph MCP) — backup first, never overwrite unrelated keys.
-  - If absent: prints one line ("Codex not found — skipping deep-worker tier").
-- `config/CLAUDE.md` routing: "deep worker" row — use the `codex` MCP tool only for
-  well-specified tasks with an acceptance command, in a dedicated worktree, sandbox
-  `workspace-write`. Approval policy is an open decision (below).
-- `~/.codex/AGENTS.md` stays as today (generated by install.sh).
+## Cut from v1 (and why)
 
-Verification: `claude mcp list` shows `codex`; a toy task ("add a unit test for X") run
-through the MCP tool lands in its worktree and passes the given command.
-
-## Phase 4 — Shared structural context: CodeGraph
-
-- `install.sh --with-codegraph`: installs CodeGraph and registers it as an MCP server for
-  Claude Code (user scope), OpenCode (`opencode.json`) and Codex (fragment) — one index,
-  three agents.
-- `config/AGENTS.md`: "For structural questions (who calls X, impact of changing Y) use the
-  code-graph tool before reading files."
-- Per-repo opt-out documented (huge monorepos / tiny repos).
-
-Verification: same question asked with and without the MCP in a real repo; compare tokens
-with `ccusage`; record numbers in ADR 0006.
-
-## Phase 5 — rulesync: reach OpenCode
-
-- Add the verified OpenCode target to `config/rulesync/rulesync.jsonc` and widen the proof
-  skill set in `build.sh` if OpenCode needs it.
-- Update ADR 0002's table with the OpenCode row.
-
-Verification: `install.sh --with-rulesync` with `HOME` pointed at a temp dir, as in ADR 0002.
-
-## Phase 6 — Central session panel (documented, not auto-installed)
-
-- README "Daily workflow": Agent Deck as the panel for Claude Code + OpenCode (+ Codex)
-  sessions with worktrees; CCManager as the no-tmux alternative. `install.sh` only prints
-  the install hint (no `curl | bash` on the user's behalf).
-- "Out of Claude quota" runbook: open OpenCode in the same worktree from Agent Deck →
-  it reads `AGENTS.md` + `HANDOFF.md` → continue.
-
-## Phase 7 — Voice
-
-- Profile: dictation language Spanish (key from Phase 0 step 7) and a note that `/voice`
-  needs the claude.ai login — never route Claude Code through `ANTHROPIC_BASE_URL`.
-
-## Phase 8 — Docs
-
-- ADR 0006 (multi-vendor routing + verified facts), ADR 0007 (automatic handoff).
-- README: routing table, hooks table, install flags, cost section (Claude Pro + OpenCode Go
-  baseline; ChatGPT Plus as the next step; Max only when `ccusage` shows constant limits).
-- `config/README.md` hooks table; plugin `hooks.json`.
-
-## Order and delivery
-
-One branch per phase (`refactor/neutral-agents-layer` first, then `feat/auto-handoff`, `feat/opencode-tier`, `feat/codex-tier`,
-`feat/codegraph`, `docs/…`), each with its own PR and verification output. Phase 0.5
-first (everything else installs into `~/.agents/`), then Phase 1: it's useful on its own and
-the multi-tool switch depends on handoff working.
-
-## Open decisions (Loren)
-
-1. Cheap tier: read-only only for now (recommended), or also mechanical edits in an
-   isolated worktree?
-2. Nudge interval: 20 min OK?
-3. Codex MCP approval policy: `never` inside a dedicated worktree (fast, recommended) or
-   `on-request` (safer, blocks without a human)?
-4. Ollama/local models: include in the base config or keep as a documented option?
-5. Where to move the hub clone out of `~/.agents/skills` (suggested `~/projects/agent-config`).
-6. Push access: this session only has read access to the repo — either grant push so the
-   branches/PRs are opened from here, or receive patches to apply locally.
+| Cut | Why |
+|---|---|
+| CodeGraph MCP | Useful on big repos; measure first. Revisit when a repo is large enough to hurt. |
+| `models.toml` + generated per-tool agent files | One `CHEAP_MODEL` line covers today's need. |
+| `mcp.toml` generator, per-tool hook adapters dir | No second MCP to share yet; one script with a mode arg is enough. |
+| rulesync changes for OpenCode | OpenCode reads `~/.agents/skills` and AGENTS.md natively. rulesync stays only for Cursor/Antigravity, as today. |
+| `opencode serve` / `--attach`, auto-start | Optimization; add if `oc-ask` latency actually bothers. |
+| `flock`, frontmatter lint, `--only/--remove` flags | Single user, rare concurrency; removal is deleting symlinks. |
+| Agent Deck automation | One README line; install it by hand if you want it. |
+| Voice phase | One line in the profile (`/voice`, language set in `/config`, needs claude.ai login). |
