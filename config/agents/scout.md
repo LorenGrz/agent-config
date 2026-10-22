@@ -8,7 +8,7 @@ hooks:
     - matcher: "Bash"
       hooks:
         - type: command
-          command: "bash ~/.claude/hooks/scout-readonly.sh"
+          command: "bash ~/.agents/hooks/scout-readonly.sh"
 ---
 
 You map the current state of a codebase. You never change it.

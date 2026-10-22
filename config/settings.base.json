@@ -50,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/guard-omarchy.sh"
+            "command": "bash ~/.agents/hooks/guard-omarchy.sh"
           }
         ]
       },
@@ -59,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/scout-readonly.sh"
+            "command": "bash ~/.agents/hooks/scout-readonly.sh"
           }
         ]
       },
@@ -68,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/rtk.sh"
+            "command": "bash ~/.agents/hooks/rtk.sh"
           }
         ]
       }
@@ -79,7 +79,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/format-file.sh",
+            "command": "bash ~/.agents/hooks/format-file.sh",
             "statusMessage": "formatting"
           }
         ]
@@ -90,7 +90,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/stop-git-status.sh"
+            "command": "bash ~/.agents/hooks/stop-git-status.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.agents/hooks/handoff.sh snapshot claude",
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.agents/hooks/handoff.sh nudge"
           }
         ]
       }
@@ -100,7 +109,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/log-instructions.sh",
+            "command": "bash ~/.agents/hooks/log-instructions.sh",
             "async": true
           }
         ]

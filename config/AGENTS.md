@@ -28,6 +28,9 @@ your profile (`config/profiles/<your-name>.md`, imported alongside this file) �
 - Add or keep scripts for `dev`, `test`, `lint`, `format`, and `typecheck` when the project needs them.
 - Maintain a short `README.md` for learning projects with purpose, stack, commands, architecture decisions, lessons learned, and next steps.
 - Per-repo context lives in `AGENTS.md` (single source of truth for every agent). `CLAUDE.md`, when present, contains only `@AGENTS.md` plus Claude-specific instructions. Never duplicate content between them; when a repo has both with overlapping content, merge into AGENTS.md.
+- Resuming work in a repo: if `docs/plans/HANDOFF.md` exists, read it first (after this
+  file). Its "Auto snapshot" block is rewritten by a hook after each turn — don't edit it;
+  keep "Current state" / "Pending work" current when you stop mid-task.
 - Every repo keeps: (a) `AGENTS.md` as the map new sessions read instead of the code; (b) `.agents/CONTEXT.md` for current state; (c) `docs/superpowers/specs/` and `docs/superpowers/plans/` for every approved spec/plan — copy an approved plan-mode plan into `docs/superpowers/plans/YYYY-MM-DD-<slug>.md` before implementing (plan mode saves outside the repo, in `~/.claude/plans`); (d) `docs/decisions/NNNN-<slug>.md` ADRs for decisions with trade-offs. Update these after merging.
 
 ## Roadmap
