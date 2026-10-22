@@ -2,7 +2,7 @@
 
 # Claude Code specifics
 
-Use the `agent-config-setup` skill (`meta/agent-config-setup/SKILL.md`) for any
+Use the `agent-config-setup` skill (`skills/meta/agent-config-setup/SKILL.md`) for any
 install/update/personalize request about this repo — it implements the guided flow
 `AGENTS.md` describes. When editing skills here, prefer the `skill-creator`-style checklist
 in each category's existing `SKILL.md` files as the format reference, not a blank page.

@@ -106,11 +106,6 @@
       }
     ]
   },
-  "statusLine": {
-    "type": "command",
-    "command": "bash ~/.claude/hooks/statusline-costo.sh",
-    "padding": 0
-  },
   "enabledPlugins": {
     "vercel@claude-plugins-official": false,
     "superpowers@superpowers-marketplace": true

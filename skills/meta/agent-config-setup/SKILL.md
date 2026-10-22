@@ -31,38 +31,34 @@ touches `~/.claude/` and `~/.codex/`.
    ```
    ./install.sh --profile <name>
    ```
-   This generates `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` (backing up any
-   pre-existing real file once, as `.bak.<timestamp>`), symlinks
-   `~/.claude/{rules,hooks,agents}` into the repo, mirrors skills into `~/.claude/skills`
-   via `sync.sh`, and merges `config/settings.base.json` into `~/.claude/settings.json`.
+   This builds the neutral layer `~/.agents/` (generated `AGENTS.md` + profile, flat
+   `skills/`, `rules`, `hooks`, `models.env`), then links each tool to it: Claude Code
+   (`~/.claude/{skills,rules,hooks,agents}`, generated `CLAUDE.md`, merged
+   `settings.json`), Codex (`~/.codex/AGENTS.md`), OpenCode (`~/.config/opencode/AGENTS.md`)
+   and `~/.local/bin/oc-ask`. Real files it doesn't own are backed up once as
+   `.bak.<timestamp>`. If the hub is still cloned at `~/.agents/skills` (old layout) it stops
+   and prints the `mv` command — relay it to the user, don't move the clone yourself.
 
 4. **Verify:**
-   - `cat ~/.claude/CLAUDE.md` — should be a generated file (header comment) importing
-     `config/AGENTS.md`, the chosen profile, and `config/CLAUDE.md`; confirm each imported
-     path exists.
-   - `cat ~/.codex/AGENTS.md` — should start with the same header comment, followed by
-     `config/AGENTS.md` and the profile content concatenated.
-   - `readlink ~/.claude/rules ~/.claude/hooks ~/.claude/agents` — each resolves into the
-     repo.
-   - `ls ~/.claude/skills | head` — populated; `readlink ~/.claude/skills/<any-name>`
-     resolves to a real `<category>/<skill>/` directory in the repo.
+   - `cat ~/.agents/AGENTS.md` — generated header, then `config/AGENTS.md` + the profile.
+   - `cat ~/.claude/CLAUDE.md` — generated header importing `~/.agents/AGENTS.md` and
+     `config/CLAUDE.md`; confirm both paths exist.
+   - `readlink ~/.codex/AGENTS.md ~/.config/opencode/AGENTS.md` — both → `~/.agents/AGENTS.md`
+     (OpenCode only if installed).
+   - `readlink ~/.claude/skills ~/.claude/rules ~/.claude/hooks ~/.claude/agents` — the
+     first three → `~/.agents/...`, `agents` → the repo's `config/agents`.
+   - `ls ~/.agents/skills | head` — populated; `readlink ~/.agents/skills/<any-name>`
+     resolves to `skills/<category>/<name>/` in the repo.
    - Re-running `./install.sh --profile <name>` should report everything already up to
      date (idempotent) — run it once more to prove that.
 
 5. **Optional extras**, each asked about before running, never bundled silently:
    - `--with-rulesync`: also generates Cursor and Google Antigravity (Gemini) global config
-     via `config/rulesync/`. Explain: Codex and Claude Code already work without it; this is
-     only useful if the user also drives those two tools. Requires `pnpm dlx` (network).
+     via `config/rulesync/`. Explain: Claude Code, Codex and OpenCode already work without it;
+     this is only useful if the user also drives Cursor or Antigravity. Requires `pnpm dlx` (network).
    - `--with-rtk`: installs [`rtk`](https://github.com/rtk-ai/rtk), a separate token-
-     reduction tool, and runs `rtk init -g`. Explain it's unrelated to the config above —
+     reduction tool (its hook is already wired in `config/settings.base.json`). Explain it's unrelated to the config above —
      skip unless the user specifically wants it.
-
-## Alternative: the plugin marketplace
-
-If the user only wants skills/agents/hooks (not rules, not the generated `CLAUDE.md`/
-`AGENTS.md`, not `settings.json` merging), point them at
-`claude plugin marketplace add <this-repo>` instead of `install.sh` — see `README.md`'s
-Install section. The two methods aren't meant to be combined on the same machine.
 
 ## Notes
 

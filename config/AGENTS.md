@@ -34,7 +34,7 @@ your profile (`config/profiles/<your-name>.md`, imported alongside this file) â€
 
 Learning roadmap and current stage are personal â€” see your profile
 (`config/profiles/<your-name>.md`) and the `roadmap-coach` skill
-(`meta/roadmap-coach/references/roadmap-detail.md`).
+(`skills/meta/roadmap-coach/references/roadmap-detail.md`).
 
 ## Git
 

@@ -31,7 +31,7 @@ JavaScript -> Node.js -> TypeScript -> React -> NestJS -> Supabase + WebSockets 
 
 - MarkItDown (PDF conversion, use first for PDF work): `~/projects/markitdown/.venv/bin/markitdown`.
 - Oracle APEX (`apexlang`) skill source: `~/projects/oracle-skills/apex/apexlang`.
-- AWS skills history: `aws/` in this hub (folded in via `git subtree`, no longer a separate `~/projects/aws-skills` clone — see ADR 0001).
+- AWS skills history: `skills/aws/` in this hub (folded in via `git subtree`, no longer a separate `~/projects/aws-skills` clone — see ADR 0001).
 
 ## Skill routing (personal)
 
@@ -44,12 +44,16 @@ JavaScript -> Node.js -> TypeScript -> React -> NestJS -> Supabase + WebSockets 
 - For end-user Omarchy customization, edit safe user config locations such as `~/.config/`, never Omarchy source under `~/.local/share/omarchy/`.
 - If changing OS or desktop config, test locally first; confirm the change works before pushing to the settings repo above; do not push unrelated or pre-existing changes.
 
-## Codex workflow adapter
+## Extra skills kept outside the hub
 
-`meta/codex-workflows` adapts Claude Code to this existing personal setup. Its extra skill roots, beyond this hub, are:
+Symlinked into the hub root (gitignored) so `install.sh` links them into `~/.agents/skills`:
+`omarchy`, `diagnose-crash` (ship with Omarchy), `apexlang` (`~/projects/oracle-skills/apex/apexlang`).
 
-- `~/.codex/skills`
-- `~/.local/share/omarchy/default/omarchy-skill/SKILL.md`
+## Voice
+
+Claude Code dictation: `/voice` (hold Space). Set the dictation language to Spanish in
+`/config`. Needs the claude.ai login — never point Claude Code at a gateway with
+`ANTHROPIC_BASE_URL`.
 
 ## Notes
 
