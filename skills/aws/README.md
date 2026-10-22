@@ -14,9 +14,9 @@ Claude Code skills for working with AWS serverless infrastructure. Each skill is
 
 ## Usage
 
-These skills live inside this hub at `aws/<skill>/SKILL.md` (folded in via `git subtree`,
-see `docs/decisions/0001-single-repo.md`) — not a separate repo. `install.sh`'s `sync.sh`
-step mirrors them flat into `~/.claude/skills`, so Claude Code loads them by name
+These skills live inside this hub at `skills/aws/<skill>/SKILL.md` (folded in via `git subtree`,
+see `docs/decisions/0001-single-repo.md`) — not a separate repo. `install.sh` links them
+flat into `~/.agents/skills` (read by Claude Code, Codex and OpenCode), so Claude Code loads them by name
 (`sam-deploy`, `lambda-patterns`, `iam-least-privilege`, `cost-optimizer`,
 `serverless-scanner`) once the hub itself is installed. No extra clone or setup step is
 needed.

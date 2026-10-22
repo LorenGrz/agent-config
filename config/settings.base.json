@@ -2,24 +2,25 @@
   "permissions": {
     "allow": [
       "Bash(aws * describe-*)",
-      "Bash(aws * list-*)",
       "Bash(aws * get-*)",
+      "Bash(aws * list-*)",
       "Bash(aws * lookup-*)",
       "Bash(aws s3 ls*)",
       "Bash(aws sts get-caller-identity*)",
-      "Bash(pnpm typecheck)",
+      "Bash(docker compose ps*)",
+      "Bash(identify *)",
+      "Bash(journalctl *)",
+      "Bash(oc-ask *)",
+      "Bash(pnpm -v)",
       "Bash(pnpm lint)",
       "Bash(pnpm test)",
-      "mcp__claude-in-chrome__tabs_context_mcp",
-      "Bash(identify *)",
-      "Bash(docker compose ps*)",
-      "Bash(journalctl *)",
-      "mcp__claude-in-chrome__find",
-      "mcp__claude_ai_Supabase__get_advisors",
-      "mcp__claude-in-chrome__read_network_requests",
-      "mcp__claude_ai_Supabase__list_migrations",
+      "Bash(pnpm typecheck)",
       "Bash(systemctl is-active *)",
-      "Bash(pnpm -v)"
+      "mcp__claude-in-chrome__find",
+      "mcp__claude-in-chrome__read_network_requests",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "mcp__claude_ai_Supabase__get_advisors",
+      "mcp__claude_ai_Supabase__list_migrations"
     ],
     "ask": [
       "Bash(aws * delete-*)",
@@ -49,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/guard-omarchy.sh"
+            "command": "bash ~/.agents/hooks/guard-omarchy.sh"
           }
         ]
       },
@@ -58,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/scout-readonly.sh"
+            "command": "bash ~/.agents/hooks/scout-readonly.sh"
           }
         ]
       },
@@ -67,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/rtk.sh"
+            "command": "bash ~/.agents/hooks/rtk.sh"
           }
         ]
       }
@@ -78,7 +79,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/format-file.sh",
+            "command": "bash ~/.agents/hooks/format-file.sh",
             "statusMessage": "formatting"
           }
         ]
@@ -89,7 +90,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/stop-git-status.sh"
+            "command": "bash ~/.agents/hooks/stop-git-status.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.agents/hooks/handoff.sh snapshot claude",
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.agents/hooks/handoff.sh nudge"
           }
         ]
       }
@@ -99,17 +109,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/log-instructions.sh",
+            "command": "bash ~/.agents/hooks/log-instructions.sh",
             "async": true
           }
         ]
       }
     ]
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "bash ~/.claude/hooks/statusline-costo.sh",
-    "padding": 0
   },
   "enabledPlugins": {
     "vercel@claude-plugins-official": false,

@@ -1,21 +1,19 @@
-# config/ — portable Claude Code configuration
+# config/ — the global layer, installed through `~/.agents`
 
-`install.sh` at the repo root generates/symlinks all of these into `~/.claude/` /
-`~/.codex/` so each agent loads them, combined with your personal profile:
+`install.sh` turns these into the tool-neutral layer `~/.agents/` and links each tool to it
+(full map in the root README):
 
 ```
-~/.claude/CLAUDE.md  -> generated: @<repo>/config/AGENTS.md, @<repo>/config/profiles/<name>.md, @<repo>/config/CLAUDE.md
-~/.codex/AGENTS.md   -> generated: <repo>/config/AGENTS.md + <repo>/config/profiles/<name>.md, concatenated
-~/.claude/rules      -> symlink: <repo>/config/rules
-~/.claude/hooks      -> symlink: <repo>/config/hooks
-~/.claude/agents     -> symlink: <repo>/config/agents
+~/.agents/AGENTS.md   generated: config/AGENTS.md + config/profiles/<name>.md
+~/.agents/rules       -> config/rules
+~/.agents/hooks       -> config/hooks
+~/.agents/models.env  -> config/models.env
+~/.claude/CLAUDE.md   generated: @~/.agents/AGENTS.md + @config/CLAUDE.md
+~/.claude/agents      -> config/agents
 ```
 
-`AGENTS.md` and `CLAUDE.md` here are **generic** — shareable with anyone who clones this
-repo, no names or personal paths. `AGENTS.md` holds the agent-agnostic instructions (read by
-Codex and other agents, concatenated with your profile); `CLAUDE.md` holds Claude Code-only
-sections (skills, agent routing) and is never imported by `AGENTS.md` itself — the generated
-`~/.claude/CLAUDE.md` imports both plus your profile, in that order.
+`AGENTS.md` (every tool) and `CLAUDE.md` (Claude Code only: skills note + agent routing)
+are **generic** — no names or personal paths.
 
 **`profiles/`** — personal content, one file per person. `_template.md` is the commented
 template; copy it to `<name>.md` and fill it in (identity, preferred language, GitHub owner,
@@ -29,10 +27,10 @@ tracked by this repo).
 
 - `agents/` — `scout.md`, `worker.md`, `reasoner.md`, the three model-pinned subagents (see root README).
 - `settings.base.json` — sanitized base merged into `~/.claude/settings.json` by `install.sh`
-  (permissions, model, hooks, statusLine, enabledPlugins, extraKnownMarketplaces, theme). No secrets,
+  (permissions, model, hooks, enabledPlugins, extraKnownMarketplaces, theme — your statusLine and other keys are left alone). No secrets,
   no machine-specific `autoMode` block.
-- `rulesync/` — multi-AI rule/skill generation for Codex CLI, Cursor, and Google Antigravity
-  (Gemini). See the root README.
+- `models.env` — `CHEAP_MODEL` for `oc-ask` (one line to switch DeepSeek / GLM / local).
+- `rulesync/` — rule/skill generation for Cursor and Google Antigravity (`--with-rulesync`).
 
 **Not tracked** (machine-local / secret): `~/.claude/settings.json` (the real, merged file),
 `settings.local.json`, `.credentials.json`, `sessions/`, `projects/` (auto-memory + transcripts),
@@ -56,27 +54,14 @@ Path-scoped — each loads only when Claude touches a matching file.
 | `testing.md` | `*.test/spec.*` | behaviour over implementation |
 | `security.md` | server + config files | authz binding, tokens, CSRF/CORS, input validation, secrets, error handling |
 
-## hooks/ — wire into `~/.claude/settings.json`
-
-```json
-{
-  "hooks": {
-    "PreToolUse":  [
-      { "matcher": "Edit|Write|MultiEdit", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/guard-omarchy.sh" }] },
-      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/scout-readonly.sh" }] }
-    ],
-    "PostToolUse": [{ "matcher": "Edit|Write|MultiEdit", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/format-file.sh", "statusMessage": "formatting" }] }],
-    "Stop":        [{ "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/stop-git-status.sh" }] }],
-    "InstructionsLoaded": [{ "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/log-instructions.sh", "async": true }] }]
-  }
-}
-```
+## hooks/ — wired in `settings.base.json`, referenced as `~/.agents/hooks/<script>`
 
 | Script | Event | Does |
 |--------|-------|------|
 | `guard-omarchy.sh` | PreToolUse (Edit\|Write\|MultiEdit) | denies edits under `~/.local/share/omarchy/` |
 | `scout-readonly.sh` | PreToolUse (Bash) | inside the `scout` subagent only: allowlists read-only commands, denies writes/mutating flags |
 | `format-file.sh` | PostToolUse | project formatter on the edited file: prettier → eslint `--fix` (TS), `ktlint -F` (Kotlin), `ruff` (Python) |
+| `handoff.sh` | Stop (`snapshot claude` async, `nudge`); Codex `notify` (`snapshot codex`) | keeps `docs/plans/HANDOFF.md` current — see ADR 0007 |
 | `stop-git-status.sh` | Stop | shows uncommitted changes when in a git repo |
 | `log-instructions.sh` | InstructionsLoaded | logs session/cwd + `file_path`/`memory_type`/`load_reason`/`trigger_file_path` (or raw JSON if the payload has none of those) to `~/.claude/logs/instructions-loaded.log` |
 | `rtk.sh` | PreToolUse (Bash) | hands read-only/verification commands (git status/diff/log, ls, find/grep, lint/test/tsc) to [rtk](https://github.com/rtk-ai/rtk) to compress their output; everything else passes through so the normal permission flow applies (rtk answers `allow`). No-op without rtk |
