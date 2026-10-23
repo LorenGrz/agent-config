@@ -40,5 +40,5 @@ Codex-facing orchestration rules.
   slower, more expensively) than Sonnet.
 - If a `worker` dispatch fails its acceptance check twice, or a reviewer's first hypothesis
   doesn't reproduce, escalate to `reasoner` rather than retrying the same tier — this is the
-  existing escalation rule in `AGENTS.md`'s Agent Routing section and is unchanged by this
+  existing escalation rule in `config/CLAUDE.md`'s Agent Routing section and is unchanged by this
   ADR.

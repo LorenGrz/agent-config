@@ -148,14 +148,16 @@ Hooks, concretely (event → script):
 |---|---|---|
 | `PreToolUse` (Edit/Write/MultiEdit) | `guard-omarchy.sh` | denies edits under `~/.local/share/omarchy/` |
 | `PreToolUse` (Bash) | `scout-readonly.sh` | inside the `scout` subagent only: allows read-only commands, denies writes |
+| `PreToolUse` (Bash) | `rtk.sh` | routes read-only/verification commands through `rtk` to compress output; no-op if `rtk` is missing |
 | `PostToolUse` (Edit/Write/MultiEdit) | `format-file.sh` | runs the project's own formatter/linter on the edited file |
 | `SessionStart` | `session-start.sh` | re-injects the routing rule; in large repos (≥200 tracked files) nudges to create/refresh `.agents/CONTEXT.md` (≥30 commits stale) |
 | `Stop` | `stop-git-status.sh` | shows uncommitted changes when in a git repo |
 | `InstructionsLoaded` | `log-instructions.sh` | logs what got loaded to `~/.claude/logs/instructions-loaded.log` |
 
-The plugin marketplace method (below) ships the last four as a generic subset
-(`hooks/hooks.json`) and omits `guard-omarchy.sh` (desktop-specific) and the cost-tracking
-status line (untracked, machine-local).
+The plugin marketplace method (below) ships five of them as a generic subset
+(`hooks/hooks.json`: `scout-readonly.sh`, `format-file.sh`, `session-start.sh`,
+`stop-git-status.sh`, `log-instructions.sh`) and omits `guard-omarchy.sh` (desktop-specific),
+`rtk.sh` (needs rtk installed) and the cost-tracking status line (untracked, machine-local).
 
 Generated files + symlink map (`install.sh` creates/repairs these; see `config/README.md`
 for the full list — `<repo>` is wherever you cloned this):
@@ -251,6 +253,22 @@ See `config/rulesync/` and ADR [0002](docs/decisions/0002-rulesync-for-multi-ai.
 the source tree is built (from `config/AGENTS.md` + `config/rules/*.md` + three proof
 skills, not duplicated by hand) and exactly which tool/feature combinations rulesync
 actually supports in global mode — it is not symmetric across tools.
+
+## Skill evals
+
+`evals/` holds trigger evals for `claude plugin eval`: each case sends a realistic prompt
+(without naming the skill) and checks that the right skill fired, or that none did for the
+`no-trigger-*` cases.
+
+```bash
+./scripts/eval-skills.sh                        # all cases
+./scripts/eval-skills.sh --case 'trigger-*'     # only the positive cases
+EVAL_RUNS=3 ./scripts/eval-skills.sh            # do this before trusting a description change
+```
+
+Each case is a real paid session (`EVAL_MAX_COST`, default 2 USD, caps a run), so this is not
+in CI on purpose. Requires Claude Code >= 2.1.269 (>= 2.1.299 for API errors to score 0).
+Results go to `evals/results/` (gitignored).
 
 ## Token efficiency
 
