@@ -7,8 +7,9 @@
 # - Symlinks ~/.claude/{rules,hooks,agents} into this repo.
 # - Runs sync.sh to (re)build the flat ~/.claude/skills mirror.
 # - Merges config/settings.base.json into ~/.claude/settings.json (jq):
-#     * hooks / statusLine / enabledPlugins / extraKnownMarketplaces / model /
-#       theme: base wins (full overwrite).
+#     * hooks / statusLine / model / theme: base wins (full overwrite).
+#     * enabledPlugins / extraKnownMarketplaces: union of existing + base; base
+#       wins only on conflicting keys, user-added entries survive.
 #     * permissions.allow / permissions.ask: union of existing + base, deduped.
 #     * every other existing top-level key (machine/project-specific blocks
 #       such as per-machine auto-approval config) is preserved as-is.
@@ -293,8 +294,8 @@ else
     | .model = $base.model
     | .hooks = $base.hooks
     | .statusLine = $base.statusLine
-    | .enabledPlugins = $base.enabledPlugins
-    | .extraKnownMarketplaces = $base.extraKnownMarketplaces
+    | .enabledPlugins = (($cur.enabledPlugins // {}) + ($base.enabledPlugins // {}))
+    | .extraKnownMarketplaces = (($cur.extraKnownMarketplaces // {}) + ($base.extraKnownMarketplaces // {}))
     | .theme = $base.theme
     | .permissions.allow = ((($cur.permissions.allow // []) + ($base.permissions.allow // [])) | unique)
     | .permissions.ask   = ((($cur.permissions.ask   // []) + ($base.permissions.ask   // [])) | unique)
