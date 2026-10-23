@@ -123,7 +123,8 @@
   },
   "enabledPlugins": {
     "vercel@claude-plugins-official": false,
-    "superpowers@superpowers-marketplace": true
+    "superpowers@superpowers-marketplace": true,
+    "playwright@anthropic-plugin-directory": true
   },
   "extraKnownMarketplaces": {
     "superpowers-marketplace": {
