@@ -22,6 +22,7 @@ JavaScript -> Node.js -> TypeScript -> React -> NestJS -> Supabase + WebSockets 
 ```
 
 - Current stage (as of 2026-10-23): NestJS and Next.js pending — the active focus. Supabase and WebSockets understood. React in-depth study completed. JavaScript, Node.js, and TypeScript foundations done. Next stage after that: React Native. Also now learning Python.
+- Roadmap progress is auto-tracked: when Loren says he understood/finished a roadmap topic, or finished work shows it (e.g. a completed project in that tech), update the stage line above yourself — run `~/.agents/skills/meta/roadmap-coach/scripts/update-stage.sh "<new stage text>"` without asking, then tell him in one line. Don't edit copies elsewhere; this line is the only source.
 - Keep roadmap tasks small and aligned to the current stage; do not introduce later frameworks just to make a project look advanced.
 - Current roadmap repo: `~/projects/roadmap`. Repository context file: `~/projects/roadmap/.agents/CONTEXT.md`.
 - Long-term product track: Study Tracker / Developer Progress Tracker (StudyQuest).

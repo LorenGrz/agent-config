@@ -10,7 +10,9 @@ Loren's full-stack TypeScript learning order:
 JavaScript -> Node.js -> TypeScript -> React -> NestJS -> Supabase + WebSockets -> Next.js -> React Native
 ```
 
-**Current stage (as of 2026-10-23):** NestJS and Next.js pending — the active focus. Supabase and WebSockets understood. React in-depth study completed. JavaScript, Node.js, and TypeScript foundations done. Next stage after that: React Native. Also now learning Python.
+**Current stage:** the `- Current stage (as of ...)` line in the active profile
+(`config/profiles/<name>.md`) is the only source of truth — don't copy it here or
+elsewhere. Update it with `scripts/update-stage.sh` (see `SKILL.md`).
 
 - Keep roadmap tasks small and aligned to the current stage.
 - Do not introduce later frameworks just to make a project look advanced.
