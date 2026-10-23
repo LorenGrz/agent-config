@@ -1,6 +1,6 @@
 ---
 name: debug-assistant
-description: Use this skill when given an error message or stack trace plus the relevant code, to work from symptom to root cause to a minimal fix, with an explanation of why it failed and how to prevent it.
+description: Use this skill whenever the user pastes an error message, exception, or stack trace (TypeError, undefined/null access, failing test, HTTP 500, crash) and asks why it fails or how to fix it - even when the fix looks like one line. Works from symptom to root cause to a minimal fix, with an explanation of why it failed and how to prevent it.
 metadata:
   version: "0.1.0"
   owner: "loren-local"

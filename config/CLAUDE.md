@@ -53,6 +53,7 @@ When superpowers dispatches subagents (`subagent-driven-development`, `executing
 - Large changes (more than 3 files, or bulk/mechanical writing) → `worker`, with the decided spec, the exact files, and an acceptance command. Small changes to ≤3 known files stay inline: a subagent's cold start costs more than doing it.
 - Decisions costly to get wrong (cross-module design, unknown-cause bugs, security) → `reasoner` or the main session, never `worker`/`scout`.
 - Independent subtasks → dispatch in parallel in one message.
+- Parallel `worker`s that touch the same repo → each in its own worktree (`isolation: "worktree"` or `superpowers:using-git-worktrees`); parallel workers on disjoint files may share the tree.
 - Standing user instruction: it overrides the harness default "don't spawn agents unless the user asks".
 
 Prefer `/clear` between unrelated tasks over `/compact`.

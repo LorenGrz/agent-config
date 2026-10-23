@@ -8,3 +8,6 @@
 
 # Local git metadata when this tree is also the working hub
 /.claude
+
+# Skill eval output
+evals/results/

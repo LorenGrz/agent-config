@@ -63,9 +63,11 @@ Path-scoped — each loads only when Claude touches a matching file.
   "hooks": {
     "PreToolUse":  [
       { "matcher": "Edit|Write|MultiEdit", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/guard-omarchy.sh" }] },
-      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/scout-readonly.sh" }] }
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/scout-readonly.sh" }] },
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/rtk.sh" }] }
     ],
     "PostToolUse": [{ "matcher": "Edit|Write|MultiEdit", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/format-file.sh", "statusMessage": "formatting" }] }],
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/session-start.sh" }] }],
     "Stop":        [{ "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/stop-git-status.sh" }] }],
     "InstructionsLoaded": [{ "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/log-instructions.sh", "async": true }] }]
   }
@@ -77,6 +79,7 @@ Path-scoped — each loads only when Claude touches a matching file.
 | `guard-omarchy.sh` | PreToolUse (Edit\|Write\|MultiEdit) | denies edits under `~/.local/share/omarchy/` |
 | `scout-readonly.sh` | PreToolUse (Bash) | inside the `scout` subagent only: allowlists read-only commands, denies writes/mutating flags |
 | `format-file.sh` | PostToolUse | project formatter on the edited file: prettier → eslint `--fix` (TS), `ktlint -F` (Kotlin), `ruff` (Python) |
+| `session-start.sh` | SessionStart | re-injects the agent routing rule; in repos with ≥200 tracked files nudges to create/refresh `.agents/CONTEXT.md` when missing or ≥30 commits stale |
 | `stop-git-status.sh` | Stop | shows uncommitted changes when in a git repo |
 | `log-instructions.sh` | InstructionsLoaded | logs session/cwd + `file_path`/`memory_type`/`load_reason`/`trigger_file_path` (or raw JSON if the payload has none of those) to `~/.claude/logs/instructions-loaded.log` |
 | `rtk.sh` | PreToolUse (Bash) | hands read-only/verification commands (git status/diff/log, ls, find/grep, lint/test/tsc) to [rtk](https://github.com/rtk-ai/rtk) to compress their output; everything else passes through so the normal permission flow applies (rtk answers `allow`). No-op without rtk |
