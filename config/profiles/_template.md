@@ -1,5 +1,5 @@
 <!--
-  Profile template for agent-config.
+  Profile template for agents-config.
 
   Copy this file to config/profiles/<your-name>.md and fill in the sections
   below. install.sh imports this file (alongside config/AGENTS.md and

@@ -1,6 +1,6 @@
-# agent-config
+# agents-config
 
-You've just opened **agent-config**: a portable agent config + skill library. One repo
+You've just opened **agents-config**: a portable agent config + skill library. One repo
 configures every coding AI a user runs (Claude Code, Codex CLI, Cursor, Google Antigravity)
 the same way, plus an on-demand skill library they all share. See `README.md` for the full
 picture; this file is the map for an agent working *in this repo*, not the config it ships
@@ -8,7 +8,7 @@ picture; this file is the map for an agent working *in this repo*, not the confi
 
 ## If the user asks to install or set up this repo
 
-Use the `agent-config-setup` skill (`meta/agent-config-setup/SKILL.md`) if it's available;
+Use the `agents-config-setup` skill (`meta/agents-config-setup/SKILL.md`) if it's available;
 otherwise follow the same steps by hand:
 
 1. Read this repo's `README.md` "Install" section.
