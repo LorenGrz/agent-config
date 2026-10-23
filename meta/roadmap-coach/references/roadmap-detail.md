@@ -4,15 +4,13 @@ Moved from `config/AGENTS.md` ("## Roadmap") so the always-loaded global
 instructions stay short. Load this file when planning or discussing
 Loren's learning roadmap in depth.
 
-Now learning Python.`
-
 Loren's full-stack TypeScript learning order:
 
 ```text
 JavaScript -> Node.js -> TypeScript -> React -> NestJS -> Supabase + WebSockets -> Next.js -> React Native
 ```
 
-**Current stage (as of 2026-08-03):** NestJS + Supabase + WebSockets. React in-depth study completed. JavaScript, Node.js, and TypeScript foundations done. Next stages: Next.js → React Native.
+**Current stage (as of 2026-10-23):** NestJS and Next.js pending — the active focus. Supabase and WebSockets understood. React in-depth study completed. JavaScript, Node.js, and TypeScript foundations done. Next stage after that: React Native. Also now learning Python.
 
 - Keep roadmap tasks small and aligned to the current stage.
 - Do not introduce later frameworks just to make a project look advanced.
