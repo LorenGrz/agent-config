@@ -1,4 +1,4 @@
-# agent-config
+# agents-config
 
 Lorenzo Graizzaro's **agent config + skills hub**, built to be portable: one repo that
 configures every coding AI anyone uses (Claude Code, Codex CLI, Cursor, Google
@@ -24,13 +24,13 @@ Pick **one** method per machine — they overlap and aren't meant to be combined
 ### Method 1 — `install.sh` (full: config + rules + hooks + subagents + skills)
 
 ```bash
-git clone https://github.com/LorenGrz/agent-config ~/.agents/skills
+git clone https://github.com/LorenGrz/agents-config ~/.agents/skills
 ~/.agents/skills/install.sh --dry-run    # preview, changes nothing
 ~/.agents/skills/install.sh --profile <your-name>
 ```
 
 Inside a Claude Code or Codex session opened in the clone, you can instead just ask your
-agent to "install this repo" — see `AGENTS.md` and the `agent-config-setup` skill, which
+agent to "install this repo" — see `AGENTS.md` and the `agents-config-setup` skill, which
 implement the same guided flow (dry-run → resolve/create your profile → confirm → install →
 verify).
 
@@ -48,8 +48,8 @@ Re-run `install.sh` any time — it is idempotent and never deletes a real file 
 ### Method 2 — Claude Code plugin marketplace (skills + agents + hooks only)
 
 ```bash
-claude plugin marketplace add LorenGrz/agent-config
-claude plugin install agent-config@agent-config
+claude plugin marketplace add LorenGrz/agents-config
+claude plugin install agents-config@agents-config
 ```
 
 Gets you the skill library, the three subagents, and the generic lifecycle hooks (not
@@ -62,7 +62,7 @@ the generated `CLAUDE.md`/`AGENTS.md`/`settings.json` merge — use Method 1 for
 ```
 .
 ├── AGENTS.md              # map for an agent working IN this repo (install flow, conventions)
-├── CLAUDE.md               # @AGENTS.md + Claude Code-only pointer to agent-config-setup
+├── CLAUDE.md               # @AGENTS.md + Claude Code-only pointer to agents-config-setup
 ├── install.sh                # generates CLAUDE.md/AGENTS.md, symlinks rules/hooks/agents,
 │                               merges settings.json, runs sync.sh — see --profile below
 ├── sync.sh                    # rebuilds the flat ~/.claude/skills mirror from <category>/<skill>/
@@ -95,7 +95,7 @@ the generated `CLAUDE.md`/`AGENTS.md`/`settings.json` merge — use Method 1 for
 ├── quality/                    # review and tests
 ├── security/                   # auth, prompt-injection defense
 ├── productivity/               # non-code deliverables (CV, email, meeting notes, ...)
-├── meta/                       # workflow/process skills, incl. agent-config-setup (see Install)
+├── meta/                       # workflow/process skills, incl. agents-config-setup (see Install)
 │
 ├── apexlang -> ~/projects/oracle-skills/apex/apexlang   # external, gitignored
 ├── omarchy -> /usr/share/omarchy/.../omarchy             # external, ships with Omarchy
@@ -107,7 +107,7 @@ your own project/tool paths) lives in `config/profiles/<your-name>.md`, never in
 `config/AGENTS.md`/`config/CLAUDE.md` — those two are imported by `install.sh` into every
 agent session and must stay shareable with anyone who clones this repo. Copy
 `config/profiles/_template.md` to get started, or let `install.sh`/the
-`agent-config-setup` skill offer to do it for you.
+`agents-config-setup` skill offer to do it for you.
 
 ## Categories
 
@@ -119,7 +119,7 @@ agent session and must stay shareable with anyone who clones this repo. Copy
 | `devops/` | `conventional-commit-generator`, `project-init`, `repository-context-maintainer`, `run-docker-environment` |
 | `security/` | `auth-security-basics`, `prompt-injection-defense` |
 | `productivity/` | `ats-resume-formatting`, `cv-linkedin-optimizer`, `meeting-notes-organizer`, `presentation-prep`, `professional-email-drafter` |
-| `meta/` | `agent-config-setup`, `codex-workflows`, `english-prompt-coach`, `roadmap-coach`, `team-architect-agent`, `team-implementer-agent`, `team-reviewer-agent` |
+| `meta/` | `agents-config-setup`, `codex-workflows`, `english-prompt-coach`, `roadmap-coach`, `team-architect-agent`, `team-implementer-agent`, `team-reviewer-agent` |
 | external (symlinked, not vendored) | `apexlang` (Oracle APEX), `omarchy`, `diagnose-crash` (ship with Omarchy) |
 
 Each skill's `SKILL.md` has the one-line purpose in its `description` frontmatter; browse

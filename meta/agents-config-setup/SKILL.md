@@ -1,9 +1,9 @@
 ---
-name: agent-config-setup
-description: Use this skill when the user wants to install, set up, update, or personalize agent-config (this repo) — "install this repo", "set up my profile", "update my agent config", or any request to run/repair install.sh. Guides the install.sh --profile flow end to end.
+name: agents-config-setup
+description: Use this skill when the user wants to install, set up, update, or personalize agents-config (this repo) — "install this repo", "set up my profile", "update my agent config", or any request to run/repair install.sh. Guides the install.sh --profile flow end to end.
 ---
 
-# agent-config Setup
+# agents-config Setup
 
 Guide a user through installing or updating this repo's config on their machine. Never run
 a real (non-dry-run) install without the user confirming the plan first — `install.sh`
@@ -24,7 +24,7 @@ touches `~/.claude/` and `~/.codex/`.
      `config/profiles/_template.md` with their answers filled in. Don't put any of this in
      `config/AGENTS.md` or `config/CLAUDE.md` — those must stay shareable.
    - `install.sh` without `--profile` also auto-detects via `gh api user --jq .login` and
-     persists the choice to `~/.config/agent-config/profile`; mention this but still confirm
+     persists the choice to `~/.config/agents-config/profile`; mention this but still confirm
      with the user rather than relying on it silently.
 
 3. **Real install**, only after the user confirms the dry-run plan:

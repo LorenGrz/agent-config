@@ -12,7 +12,10 @@ stage="${1:-}"
 [[ -n "$stage" ]] || { echo "usage: $0 [--dry-run] \"<stage text>\"" >&2; exit 2; }
 
 hub=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
-profile_name=$(cat "${XDG_CONFIG_HOME:-$HOME/.config}/agent-config/profile" 2>/dev/null || true)
+cfg_dir="${XDG_CONFIG_HOME:-$HOME/.config}"
+profile_file="$cfg_dir/agents-config/profile"
+[[ -f "$profile_file" ]] || profile_file="$cfg_dir/agent-config/profile" # legacy path
+profile_name=$(cat "$profile_file" 2>/dev/null || true)
 [[ -n "$profile_name" ]] || { echo "no active profile; run install.sh --profile <name> first" >&2; exit 1; }
 profile_rel="config/profiles/${profile_name}.md"
 profile="$hub/$profile_rel"

@@ -17,9 +17,11 @@ owner to `LorenGrz` unconditionally.
   stage, project/tool paths, OS settings repo) moved to `config/profiles/loren.md`, with
   `config/profiles/_template.md` as the commented starting point for anyone else.
 - **`install.sh --profile <name>`** resolves which profile to import: the flag, then a
-  persisted choice (`~/.config/agent-config/profile`), then `gh api user --jq .login` if it
+  persisted choice (`~/.config/agents-config/profile`), then `gh api user --jq .login` if it
   matches an existing profile, then the same login with `config/profiles/_template.md`
-  copied in for the user to fill, then the template directly if `gh` isn't available.
+  copied in for the user to fill, then the template directly if `gh` isn't available. The state
+  dir can be overridden with `AGENTS_CONFIG_STATE_DIR`; the legacy names (`AGENT_CONFIG_STATE_DIR`,
+  `~/.config/agent-config`) are still read (see ADR 0007).
 - **`~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` became generated files**, not symlinks:
   the former `@`-imports `config/AGENTS.md` + the chosen profile + `config/CLAUDE.md`; the
   latter concatenates `config/AGENTS.md` + the profile (Codex has no `@`-import). Both carry
@@ -34,7 +36,7 @@ owner to `LorenGrz` unconditionally.
   `LorenGrz` default in `init.sh` or `bootstrap-github.sh`.
 - **A root `AGENTS.md`/`CLAUDE.md`** (distinct from `config/`'s) tell an agent that just
   opened this repo how to guide a user through install — dry-run, resolve/create a profile,
-  confirm, install, verify — implemented as the `meta/agent-config-setup` skill.
+  confirm, install, verify — implemented as the `meta/agents-config-setup` skill.
 - **A Claude Code plugin marketplace** (`.claude-plugin/marketplace.json` +
   `.claude-plugin/plugin.json`) offers a second, lighter install path: skills (via
   category-directory `skills` entries — `aws/`, `development/`, etc., each already a

@@ -1,14 +1,14 @@
 {
-  "name": "agent-config",
-  "displayName": "agent-config",
+  "name": "agents-config",
+  "displayName": "agents-config",
   "version": "1.0.0",
-  "description": "Skill library, model-pinned subagents, and generic lifecycle hooks from the agent-config hub. Rules and the generated CLAUDE.md/AGENTS.md are not part of this plugin — use install.sh for those (see this repo's README).",
+  "description": "Skill library, model-pinned subagents, and generic lifecycle hooks from the agents-config hub. Rules and the generated CLAUDE.md/AGENTS.md are not part of this plugin — use install.sh for those (see this repo's README).",
   "author": {
     "name": "Lorenzo Graizzaro",
     "url": "https://github.com/LorenGrz"
   },
-  "homepage": "https://github.com/LorenGrz/agent-config",
-  "repository": "https://github.com/LorenGrz/agent-config",
+  "homepage": "https://github.com/LorenGrz/agents-config",
+  "repository": "https://github.com/LorenGrz/agents-config",
   "keywords": ["skills", "subagents", "hooks", "workflow"],
   "skills": [
     "./aws",
