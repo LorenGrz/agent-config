@@ -1,5 +1,7 @@
 # 0003 — Model routing by task complexity, not by habit
 
+> The "≤3 known files inline" rule below is superseded by [0006](0006-always-delegate.md).
+
 ## Context
 
 Three model-pinned subagents exist (`scout` = Haiku, `worker` = Sonnet, `reasoner` = Opus,

@@ -226,8 +226,10 @@ rule itself (also in `config/CLAUDE.md`, which loads every session):
 | Sonnet / `worker` | Writes all code/docs from an already-decided plan | Open-ended decisions |
 | Haiku / `scout` | Light read-only lookups | Writes, decisions |
 
-Inline (no subagent) when the change touches ≤3 known files — a cold-start subagent costs
-more tokens than doing it directly.
+The main session (Opus) always delegates: lookups go to `scout`, all writing goes to
+`worker`, and Opus only decides, writes specs, reviews, and reports. Inline work is limited
+to answering from loaded context, single known-file reads, and git/gh. See
+[ADR 0006](docs/decisions/0006-always-delegate.md).
 
 ## Multi-AI: Codex, Cursor, Antigravity (Gemini)
 
