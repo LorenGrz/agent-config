@@ -226,10 +226,9 @@ rule itself (also in `config/CLAUDE.md`, which loads every session):
 | Sonnet / `worker` | Writes all code/docs from an already-decided plan | Open-ended decisions |
 | Haiku / `scout` | Light read-only lookups | Writes, decisions |
 
-The main session (Opus) always delegates: lookups go to `scout`, all writing goes to
-`worker`, and Opus only decides, writes specs, reviews, and reports. Inline work is limited
-to answering from loaded context, single known-file reads, and git/gh. See
-[ADR 0006](docs/decisions/0006-always-delegate.md).
+Open lookups (unknown paths, web, docs) go to `scout`; large changes (more than 3 files or
+bulk writing) go to `worker`; small changes to ≤3 known files stay inline. Opus decides,
+writes specs, reviews, and reports. See [ADR 0006](docs/decisions/0006-always-delegate.md).
 
 ## Multi-AI: Codex, Cursor, Antigravity (Gemini)
 

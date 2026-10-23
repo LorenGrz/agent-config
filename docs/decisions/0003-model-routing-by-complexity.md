@@ -1,6 +1,6 @@
 # 0003 — Model routing by task complexity, not by habit
 
-> The "≤3 known files inline" rule below is superseded by [0006](0006-always-delegate.md).
+> The "≤3 known files inline" rule below is narrowed by [0006](0006-always-delegate.md): it applies to known files only; open lookups go to `scout`.
 
 ## Context
 

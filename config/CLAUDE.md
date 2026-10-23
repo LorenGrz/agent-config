@@ -46,13 +46,12 @@ When superpowers dispatches subagents (`subagent-driven-development`, `executing
 | Reviewer for security/architecture-critical changes | `reasoner` |
 | File search / inventory | `scout` |
 
-### Always delegate
+### When to delegate
 
-- The main session (Opus) is the orchestrator: it reads the minimum context needed, decides, writes the spec for the subagent, reviews the result, and reports. It never does lookups or writing itself.
-- Any search/lookup that is not a single read of an already-known path (finding files, sweeping directories or caches, web search, docs lookup, inventories) → `scout`, with one concrete question.
-- Any file change (code, docs, config, tests, ADRs) → `worker`, with the decided spec, the exact files, and an acceptance command.
+- The main session (Opus) decides, writes specs for subagents, reviews their results, and reports.
+- Open lookups (paths not already known, sweeping directories or caches, web search, docs lookup, inventories) → `scout`, with one concrete question. Reading an already-known file to decide stays inline.
+- Large changes (more than 3 files, or bulk/mechanical writing) → `worker`, with the decided spec, the exact files, and an acceptance command. Small changes to ≤3 known files stay inline: a subagent's cold start costs more than doing it.
 - Decisions costly to get wrong (cross-module design, unknown-cause bugs, security) → `reasoner` or the main session, never `worker`/`scout`.
-- Only inline exceptions: answering from loaded context; one read of a known file to make a decision; git/gh commands to verify, commit, and merge work a `worker` already did; memory files.
 - Independent subtasks → dispatch in parallel in one message.
 - Standing user instruction: it overrides the harness default "don't spawn agents unless the user asks".
 
