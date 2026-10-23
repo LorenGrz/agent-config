@@ -77,6 +77,26 @@ while IFS= read -r seg; do
       [[ "$rest" =~ (^|[[:space:]])(-d|--data[a-z-]*|-F|--form|-T|--upload-file)([[:space:]]|=|$) ]] && deny "$seg" "curl sends a body"
       [[ "$rest" =~ (^|[[:space:]])(-o|--output)[[:space:]]+([^[:space:]]+) && "${BASH_REMATCH[3]}" != /dev/null ]] && deny "$seg" "curl writes a file"
       [[ "$rest" =~ (^|[[:space:]])(-O|--remote-name) ]] && deny "$seg" "curl writes a file" ;;
+    cd|type|id|uname|whoami|hostname) ;; # cd only changes this shell's cwd
+    command) [[ "$rest" =~ ^-[vV]([[:space:]]|$) ]] || deny "$seg" "only 'command -v/-V' is allowed (command <prog> bypasses the allowlist)" ;;
+    env) [ -z "$rest" ] || deny "$seg" "env with arguments runs a program" ;;
+    pipx) [[ "$rest" =~ ^list([[:space:]]|$) ]] || deny "$seg" "only 'pipx list' is allowed" ;;
+    uv) [[ "$rest" =~ ^(tool[[:space:]]+list|pip[[:space:]]+(list|show))([[:space:]]|$) ]] || deny "$seg" "uv is limited to tool list / pip list / pip show" ;;
+    pip|pip3) [[ "$rest" =~ ^(list|show|freeze)([[:space:]]|$) ]] || deny "$seg" "pip is limited to list|show|freeze" ;;
+    npm|pnpm) [[ "$rest" =~ ^(ls|list|view|why|outdated)([[:space:]]|$) ]] || deny "$seg" "$prog is limited to ls|list|view|why|outdated" ;;
+    node|python3|python) [[ "$rest" =~ ^(--version|-V)[[:space:]]*$ ]] || deny "$seg" "$prog is limited to --version" ;;
+    gh)
+      read -r -a words <<<"$rest"
+      case "${words[0]:-} ${words[1]:-}" in
+        "repo view"|"pr view"|"pr list"|"pr diff"|"pr checks"|"pr status"|"issue view"|"issue list"|"run view"|"run list"|"release view"|"release list") ;;
+        "api "*)
+          [[ "${words[1]}" == graphql ]] && deny "$seg" "gh api graphql can mutate"
+          [[ "$rest" =~ (^|[[:space:]])(-f|-F|--field|--raw-field|--input) ]] && deny "$seg" "gh api sends a body"
+          if [[ "$rest" =~ (^|[[:space:]])(-X|--method)[[:space:]=]*([^[:space:]]+) ]]; then
+            [[ "${BASH_REMATCH[3]^^}" == GET ]] || deny "$seg" "gh api non-GET method"
+          fi ;;
+        *) deny "$seg" "gh ${words[0]:-} ${words[1]:-} is not on the read-only list" ;;
+      esac ;;
     aws)
       read -r -a words <<<"$rest"
       svc="" verb=""

@@ -149,6 +149,7 @@ Hooks, concretely (event → script):
 | `PreToolUse` (Edit/Write/MultiEdit) | `guard-omarchy.sh` | denies edits under `~/.local/share/omarchy/` |
 | `PreToolUse` (Bash) | `scout-readonly.sh` | inside the `scout` subagent only: allows read-only commands, denies writes |
 | `PostToolUse` (Edit/Write/MultiEdit) | `format-file.sh` | runs the project's own formatter/linter on the edited file |
+| `SessionStart` | `session-start.sh` | re-injects the routing rule; in large repos (≥200 tracked files) nudges to create/refresh `.agents/CONTEXT.md` (≥30 commits stale) |
 | `Stop` | `stop-git-status.sh` | shows uncommitted changes when in a git repo |
 | `InstructionsLoaded` | `log-instructions.sh` | logs what got loaded to `~/.claude/logs/instructions-loaded.log` |
 
@@ -229,6 +230,7 @@ rule itself (also in `config/CLAUDE.md`, which loads every session):
 Open lookups (unknown paths, web, docs) go to `scout`; large changes (more than 3 files or
 bulk writing) go to `worker`; small changes to ≤3 known files stay inline. Opus decides,
 writes specs, reviews, and reports. See [ADR 0006](docs/decisions/0006-always-delegate.md).
+The rule is re-injected at every session start by `session-start.sh` (see [ADR 0008](docs/decisions/0008-session-start-hook.md)).
 
 ## Multi-AI: Codex, Cursor, Antigravity (Gemini)
 
