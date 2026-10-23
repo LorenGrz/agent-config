@@ -1,4 +1,4 @@
-# 0006 — The main session always delegates
+# 0006 — The main session delegates open lookups and large changes
 
 ## Context
 
@@ -9,23 +9,24 @@ research a plugin, spending Opus tokens on work `scout` handles fine.
 
 ## Decision
 
-The main session (Opus) is only the orchestrator: it reads the minimum context needed,
-decides, writes the spec, reviews the result, and reports.
+The main session (Opus) decides, writes specs, reviews results, and reports.
 
-- Lookups that are not a single read of a known path → `scout`, with one concrete question.
-- Any file change (code, docs, config, tests, ADRs) → `worker`, with the decided spec, exact
-  files, and an acceptance command.
+- Open lookups (paths not already known, sweeping directories or caches, web search, docs
+  lookup) → `scout`, with one concrete question. Reading a known file to decide stays inline.
+- Large changes (more than 3 files, or bulk/mechanical writing) → `worker`, with the decided
+  spec, exact files, and an acceptance command. Small changes to ≤3 known files stay inline.
 - Costly-to-get-wrong decisions → `reasoner` or the main session, never `worker`/`scout`.
-- Inline only for: answering from loaded context, one read of a known file to decide,
-  git/gh to verify/commit/merge work a `worker` did, and memory files.
 - Independent subtasks are dispatched in parallel in one message.
 - This is a standing user instruction and overrides the harness default.
 
-Supersedes the "≤3 known files inline" paragraph of 0003.
+A first version of this ADR (same day) delegated *every* edit; it was narrowed to the above
+because a subagent's cold start costs more than a small known-file edit.
+
+Keeps 0003's "≤3 known files inline" rule for writing, but limits it to known files: open
+lookups always go to `scout`.
 
 ## Consequences
 
-- Fewer Opus output tokens.
-- Each subagent pays a cold-start cost; accepted because Opus tokens are the expensive part.
-- Small edits get slightly slower.
-- The main session has to write clear specs.
+- Opus no longer spends tokens on open-ended searches or bulk writing.
+- Small known-file edits stay fast, with no cold-start cost.
+- The main session has to write clear specs for what it delegates.
