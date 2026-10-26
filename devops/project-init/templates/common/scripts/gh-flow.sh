@@ -15,6 +15,10 @@
 #   DRY_RUN=1   print commands instead of running them.
 set -euo pipefail
 
+# A shell exporting CLICOLOR_FORCE=1 makes gh emit ANSI codes even when piped,
+# which breaks `gh ... --format json | jq`. Only CLICOLOR_FORCE=0 turns it off.
+export CLICOLOR_FORCE=0 NO_COLOR=1
+
 usage() {
   cat <<'EOF'
 Usage: gh-flow.sh <command> [args]
@@ -83,7 +87,9 @@ cmd_start() {
   fi
 
   run git checkout dev
-  run git pull
+  # --autostash: with pull.rebase set, a dirty tree makes a plain pull fail;
+  # stash/pop carries the uncommitted work onto the new branch.
+  run git pull --autostash
   run git checkout -b "$branch"
   echo "Created branch $branch"
 }
