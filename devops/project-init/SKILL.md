@@ -11,23 +11,24 @@ Scaffold a new repo once, correctly, instead of re-deciding workflow per project
 
 1. **Ask**: stack (`react-vite` | `next` | `nestjs` | `node-ts`), project name, visibility (default `public`). Remind the user: never commit secrets.
 
-2. **Generate the app, if the target dir is empty**, with the stack's own official generator, then overlay this skill's templates:
-   - react-vite: `pnpm create vite@latest <name> --template react-ts`
-   - next: `pnpm create next-app@latest <name>`
-   - nestjs: `pnpm dlx @nestjs/cli new <name> --package-manager pnpm`
-   - node-ts: follow the `typescript-project-starter` skill instead of a generator
+2. **Generate the app, if the target dir is empty**, with the stack's own official generator in its non-interactive form, then overlay this skill's templates. The dir/package name must be lowercase (npm rule) and may differ from the GitHub repo name (repo `Disfrazate`, dir/package `disfrazate`); `--name` below is the **GitHub repo name**:
+   - react-vite: `pnpm create vite@latest <dir> --template react-ts --no-interactive --no-immediate`, then `pnpm -C <dir> install` (run from the parent dir; vite resolves `<dir>` relative to cwd)
+   - next: `pnpm create next-app@latest <dir> --yes --use-pnpm --disable-git`
+   - nestjs: `pnpm dlx @nestjs/cli new <dir> --directory <dir> --package-manager pnpm --skip-git --no-observe`
+   - node-ts: just `mkdir <dir>`; `init.sh --install` creates `package.json` and `src/index.ts`
    Then run:
    ```
-   bash scripts/init.sh --stack <stack> --name <name> --dir <path> [--owner <owner>] [--project-number N] --install
+   bash scripts/init.sh --stack <stack> --name <repo-name> --dir <path> [--owner <owner>] [--project-number N] --install
    ```
    `--owner` defaults to `gh api user --jq .login` (if `gh` is authenticated), then `git config github.user`; pass it explicitly if neither resolves.
-   Without `--install`, `init.sh` only prints the commands needed (ESLint devDependencies, missing package.json scripts); nothing is installed or written to `package.json` scripts.
+   Without `--install`, `init.sh` only prints the commands needed (devDependencies, missing package.json scripts); nothing is installed or written to `package.json` scripts.
 
 3. **Local git setup** (do this, do not delegate it):
    - `git init -b main` if the directory is not already a repo.
-   - Confirm `.gitignore` exists and covers: `node_modules/`, `.pnp*`, `.venv/`, `__pycache__/`, `*.py[cod]`, `.env` and `.env.*` (keep `!.env.example`), `*.pem`, `*.key`, `*credentials*.json`, `*secret*.json`, `dist/`, `build/`, `out/`, `.next/`, `.turbo/`, `coverage/`, `*.tsbuildinfo`, `*.log`, `.cache/`, `tmp/`, `.DS_Store`, `Thumbs.db`, `.idea/`, `.vscode/*` (keep `!.vscode/extensions.json`), `.superpowers/`. `init.sh` already wrote this file; only fix it if something is missing.
+   - Confirm `.gitignore` exists and covers: `node_modules/`, `.pnp*`, `.venv/`, `__pycache__/`, `*.py[cod]`, `.env` and `.env.*` (keep `!.env.example`), `*.pem`, `*.key`, `*credentials*.json`, `*secret*.json`, `dist/`, `build/`, `out/`, `.next/`, `.turbo/`, `coverage/`, `*.tsbuildinfo`, `*.log`, `.cache/`, `tmp/`, `.DS_Store`, `Thumbs.db`, `.idea/`, `.vscode/*` (keep `!.vscode/extensions.json`), `.superpowers/`. `init.sh` merges any missing baseline lines into the generator's `.gitignore`; only fix it if something is still missing.
    - `git config core.hooksPath .githooks`
    - `git add -A && git commit -m "chore: initial project setup"`
+   - `bash scripts/verify-ci.sh --dir <path>` - clones the committed HEAD and runs CI's steps (install --frozen-lockfile, format:check, lint, typecheck, test, build). Fix anything red before step 4.
 
 4. **External steps, one at a time, each confirmed by the user before running.** Never hand these to a background agent - they touch GitHub and real resources. `--owner` defaults the same way as `init.sh`'s (gh login, then `git config github.user`); pass it explicitly if neither resolves.
    ```
@@ -38,7 +39,7 @@ Scaffold a new repo once, correctly, instead of re-deciding workflow per project
    bash scripts/bootstrap-github.sh project  [--owner <owner>] --name <name>
    bash scripts/bootstrap-github.sh protect  [--owner <owner>] --name <name>
    ```
-   `project` prints the new Project number and the follow-up commit needed to replace `TBD`/`{{PROJECT_NUMBER}}` in the repo (`.github/ISSUE_TEMPLATE/*.yml`, `AGENTS.md`, `.agents/CONTEXT.md`); make that commit yourself, it is not automatic.
+   `project` creates the Project, then replaces `TBD`/`{{PROJECT_NUMBER}}` in the repo (`.github/ISSUE_TEMPLATE/*.yml`, `AGENTS.md`, `.agents/CONTEXT.md`), commits it (`chore: set project number to N`) and pushes the current branch itself - no manual commit.
    Run with `--dry-run` first any time you want to preview the exact `gh`/`git` commands without touching GitHub.
 
 5. **Verify and report**: repo URL, dev as default branch, Project URL, CI green on the first PR.
@@ -83,6 +84,13 @@ Use `scripts/adopt.sh` instead of `init.sh` when the repo was **not** generated 
 ## Notes
 
 - `init.sh` never overwrites an existing file unless `--force`; it prints `skip <path> (exists)` instead. Safe to re-run (verified by diffing the tree before/after a second run with no flags changed). Two files are a deliberate exception: `eslint.config.js`/`.mjs` and `AGENTS.md` still get overlaid even if a file already exists there, as long as that file doesn't carry this skill's own marker text yet - `create-next-app --eslint` writes its own `eslint.config.mjs`, and Next 16+ also writes a short `AGENTS.md` (regenerated by `next dev` regardless, per its own comment), both at the exact paths this skill needs to own. Once this skill's version is in place (marker present), normal skip-if-exists behavior resumes.
-- `nest new`'s current scaffold ships Vitest, not Jest (`init.sh`'s default `test` script for nestjs follows suit: `vitest run`, only used when the generator's own `package.json` is missing a `test` script, which it currently never is).
+- `nest new`'s current scaffold ships Vitest, not Jest (`init.sh`'s default `test` script for nestjs follows suit: `vitest run --passWithNoTests`, only used when the generator's own `package.json` is missing a `test` script, which it currently never is).
 - CI's lint step is `pnpm run --if-present lint --max-warnings 0`, with no `--` separator before the flag: the installed pnpm (12.5.1 as of writing) forwards every token after the script name verbatim, including a literal `--`, which breaks `eslint`'s arg parsing if one is added back.
 - `bootstrap-github.sh all` only runs with `--dry-run` (refuses otherwise) - the real sequence is always confirmed step by step per item 4.
+- `.gitignore` is the other exception to skip-if-exists: generators write their own, so `init.sh` appends every template line not already present under a `# project-init baseline` header (`merged .gitignore (+N lines)`, or `skip .gitignore (complete)` on re-run).
+- `init.sh --install` adds any tool the scripts call but the project doesn't declare (`prettier`, `vitest`, `tsx`) to the same `pnpm add -D` as the ESLint deps, writes `pnpm-workspace.yaml` `allowBuilds.esbuild: false` when `tsx` comes in (pnpm otherwise aborts with `ERR_PNPM_IGNORED_BUILDS`), and ends with `pnpm run format` so CI's `format:check` passes. `.prettierignore` skips `pnpm-lock.yaml`.
+- `test` is `vitest run --passWithNoTests` on every stack (bare `vitest` is watch mode and exits 1 with no test files; an existing bare `vitest` is replaced). next's `typecheck` is `next typegen && tsc --noEmit` (global types like `LayoutProps` live in gitignored `.next/types`; an existing bare `tsc --noEmit` is replaced).
+- `bootstrap-github.sh` and `gh-flow.sh` export `CLICOLOR_FORCE=0 NO_COLOR=1`: a shell with `CLICOLOR_FORCE=1`/`FORCE_COLOR=1` makes `gh --format json | jq` fail on ANSI codes, and only `CLICOLOR_FORCE=0` turns it off. `gh-flow.sh start` uses `git pull --autostash` so a dirty tree survives pull.rebase.
+- The project's `guard-branch.sh` hook blocks `git commit`/`git push` on dev/main, except the initial commit (no HEAD yet). It judges the repo the command targets (`git -C <dir>` or a leading `cd <dir> &&`), not the session cwd.
+- node-ts's ESLint config is `eslint.config.mjs` so it loads regardless of the package `"type"`.
+- After editing anything in this skill, run `bash scripts/e2e.sh --stack all` (generates all four stacks in temp dirs, runs `init.sh --install`, `verify-ci.sh`, and an idempotency re-run; never touches GitHub). It must end with every stack PASS.

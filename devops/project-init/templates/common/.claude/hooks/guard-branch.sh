@@ -17,17 +17,37 @@ deny() {
   exit 0
 }
 
+# Judge the repo the command actually targets, not the session's cwd:
+# `git -C <dir> ...` or a leading `cd <dir> && ...` (else a commit in another
+# repo is blocked whenever this one sits on dev, and `git -C` slips through).
+GIT_C='git([[:space:]]+-C[[:space:]]+[^[:space:];&|]+)?[[:space:]]+'
+target=""
+if [[ "$cmd" =~ git[[:space:]]+-C[[:space:]]+([^[:space:];&|]+) ]]; then
+  target="${BASH_REMATCH[1]}"
+elif [[ "$cmd" =~ ^[[:space:]]*cd[[:space:]]+([^[:space:];&|]+) ]]; then
+  target="${BASH_REMATCH[1]}"
+fi
+if [ -n "$target" ]; then
+  target="${target//[\"\']/}"
+  target="${target/#\~/$HOME}"
+  [[ "$target" == /* ]] || target="$cwd/$target"
+  cwd="$target"
+fi
+
 current_branch() {
   git -C "$cwd" branch --show-current 2>/dev/null
 }
 
-if [[ "$cmd" =~ (^|[[:space:];&|])git[[:space:]]+commit([[:space:]]|$) ]]; then
+if [[ "$cmd" =~ (^|[[:space:];&|])${GIT_C}commit([[:space:]]|$) ]]; then
+  # The very first commit (SKILL step 3) lands on main by design: with no
+  # HEAD yet there is nothing to protect.
+  git -C "$cwd" rev-parse --verify -q HEAD >/dev/null 2>&1 || exit 0
   branch="$(current_branch)"
   if [ "$branch" = "dev" ] || [ "$branch" = "main" ]; then deny; fi
   exit 0
 fi
 
-if [[ "$cmd" =~ (^|[[:space:];&|])git[[:space:]]+push([[:space:]]|$) ]]; then
+if [[ "$cmd" =~ (^|[[:space:];&|])${GIT_C}push([[:space:]]|$) ]]; then
   rest="${cmd#*push}"
   tokens=()
   for tok in $rest; do

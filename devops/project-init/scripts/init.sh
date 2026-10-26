@@ -9,7 +9,8 @@
 # else `git config github.user`, else it is required.
 #
 # Idempotent: never overwrites an existing file unless --force. Prints
-# "skip <path> (exists)" for anything it leaves alone.
+# "skip <path> (exists)" for anything it leaves alone. (.gitignore is merged
+# instead of skipped, see merge_gitignore.)
 set -euo pipefail
 
 usage() {
@@ -26,9 +27,11 @@ Usage: init.sh --stack <react-vite|next|nestjs|node-ts> --name <name>
                      github.user`; required if neither resolves)
   --project-number   GitHub Project number, used as {{PROJECT_NUMBER}} (default: TBD)
   --force            overwrite files that already exist
-  --install          actually install ESLint devDependencies and write
-                     missing package.json scripts, instead of just printing
-                     the commands needed
+  --install          actually install the missing devDependencies (ESLint plus
+                     any prettier/vitest/tsx the scripts use), write missing
+                     package.json scripts, create package.json for node-ts,
+                     and finish with `pnpm run format`, instead of just
+                     printing the commands needed
 EOF
 }
 
@@ -104,6 +107,30 @@ substitute() {
 # marker comment yet, it's still the generator's untouched default - overlay
 # it. If it does carry the marker, a previous `init.sh` run (or the user)
 # already owns it, so the normal "exists -> skip" rule applies.
+# Generators (create-next-app, vite, nest) write their own .gitignore, so a
+# plain skip-if-exists left the baseline entries (*.key, *secret*.json,
+# .superpowers/, .env.* ...) missing. Append every template line that isn't
+# already present verbatim, under one header. Idempotent: a second run finds
+# every line present and adds nothing.
+merge_gitignore() {
+  local src="$1" dest="$2" line added=0
+  local -a missing=()
+  while IFS= read -r line || [ -n "$line" ]; do
+    [ -z "$line" ] && continue
+    [[ "$line" == \#* ]] && continue
+    grep -qxF -- "$line" "$dest" || missing+=("$line")
+  done < "$src"
+  if [ ${#missing[@]} -eq 0 ]; then
+    echo "skip .gitignore (complete)"
+    return
+  fi
+  # Make sure the header doesn't glue onto a final line lacking a newline.
+  [ -n "$(tail -c1 "$dest")" ] && printf '\n' >> "$dest"
+  { printf '\n# project-init baseline\n'; printf '%s\n' "${missing[@]}"; } >> "$dest"
+  added=${#missing[@]}
+  echo "merged .gitignore (+$added lines)"
+}
+
 copy_template_tree() {
   local src_root="$1"
   [ -d "$src_root" ] || return 0
@@ -114,6 +141,10 @@ copy_template_tree() {
     [ "$rel" = "AGENTS.stack.md" ] && continue
     dest="$DIR/$rel"
     if [ -e "$dest" ] && [ "$FORCE" != 1 ]; then
+      if [ "$rel" = ".gitignore" ]; then
+        merge_gitignore "$file" "$dest"
+        continue
+      fi
       if { [ "$rel" = "eslint.config.js" ] || [ "$rel" = "eslint.config.mjs" ]; } \
         && ! grep -q "Written by the project-init skill" "$dest" 2>/dev/null; then
         : # generator's untouched default - fall through and overlay it
@@ -157,59 +188,117 @@ generate_agents_md() {
   echo "wrote AGENTS.md"
 }
 
-# Print (or, with --install, run) the pnpm add -D command for the devDependencies
-# the stack's eslint.config.*/tsconfig.json need. react-vite and next get the
-# same oxlint-override treatment `pnpm create vite` already needed: the
-# generator's own lint default (oxlint, or next's own eslint-config-next) is
-# superseded by a flat config carrying the typescript-code-quality rules.
-# `nest new` now also defaults to oxlint with no eslint.config.mjs at all, so
-# nestjs gets the same override. node-ts has no generator, so it additionally
-# needs a pinned `typescript` (typescript-eslint doesn't support >=6.1 yet)
-# and `@types/node` for the tsconfig.json this skill ships for that stack.
-print_or_install_eslint_deps() {
-  local -a deps=()
+# devDependencies the stack's eslint.config.*/tsconfig.json need. react-vite
+# and next get the same oxlint-override treatment `pnpm create vite` already
+# needed: the generator's own lint default (oxlint, or next's own
+# eslint-config-next) is superseded by a flat config carrying the
+# typescript-code-quality rules. `nest new` now also defaults to oxlint with
+# no eslint.config.mjs at all, so nestjs gets the same override. node-ts has
+# no generator, so it additionally needs a pinned `typescript`
+# (typescript-eslint doesn't support >=6.1 yet) and `@types/node` for the
+# tsconfig.json this skill ships for that stack.
+eslint_deps() {
   case "$STACK" in
     react-vite)
-      deps=(eslint @eslint/js globals typescript-eslint eslint-plugin-react-hooks eslint-plugin-react-refresh eslint-plugin-react-you-might-not-need-an-effect eslint-plugin-jsx-a11y)
-      ;;
+      echo eslint @eslint/js globals typescript-eslint eslint-plugin-react-hooks eslint-plugin-react-refresh eslint-plugin-react-you-might-not-need-an-effect eslint-plugin-jsx-a11y ;;
     next)
-      deps=(eslint-plugin-react-hooks eslint-plugin-react-you-might-not-need-an-effect eslint-plugin-jsx-a11y)
-      ;;
+      echo eslint-plugin-react-hooks eslint-plugin-react-you-might-not-need-an-effect eslint-plugin-jsx-a11y ;;
     nestjs)
-      deps=(eslint @eslint/js globals typescript-eslint)
-      ;;
+      echo eslint @eslint/js globals typescript-eslint ;;
     node-ts)
-      deps=(eslint @eslint/js globals typescript-eslint "typescript@^5" @types/node)
-      ;;
+      echo eslint @eslint/js globals typescript-eslint "typescript@^5" @types/node ;;
   esac
+}
+
+# Tool binaries the settled package.json scripts call that the project doesn't
+# declare yet. init.sh sets format/format:check (prettier), test (vitest) and
+# node-ts's dev (tsx) but generators install none of them, so CI died on a
+# missing binary. Without --install the scripts aren't written yet, so fall
+# back to the canonical value for any script that's missing.
+missing_tool_deps() {
+  local pkg="$DIR/package.json" tool name val all=""
+  for name in "${!SCRIPTS[@]}"; do
+    val=""
+    [ -f "$pkg" ] && val="$(jq -r --arg n "$name" '.scripts[$n] // empty' "$pkg")"
+    [ -n "$val" ] || val="${SCRIPTS[$name]}"
+    all+="$val"$'\n'
+  done
+  for tool in prettier vitest tsx; do
+    grep -qE "(^|[^[:alnum:]_@/-])$tool([^[:alnum:]_-]|$)" <<<"$all" || continue
+    if [ -f "$pkg" ] && jq -e --arg t "$tool" '((.dependencies // {}) + (.devDependencies // {})) | has($t)' "$pkg" >/dev/null; then
+      continue
+    fi
+    echo "$tool"
+  done
+}
+
+# pnpm >=10 fails `add`/`install` with ERR_PNPM_IGNORED_BUILDS when a
+# dependency has an unreviewed build script. tsx pulls in esbuild, whose
+# postinstall is only an optimization (the platform binary arrives as an
+# optional dependency), so record "esbuild: false" explicitly - the same
+# outcome pnpm defaults to, just acknowledged. Existing entries are kept.
+ensure_esbuild_build_policy() {
+  local ws="$DIR/pnpm-workspace.yaml"
+  if [ ! -f "$ws" ]; then
+    printf 'allowBuilds:\n  esbuild: false\n' > "$ws"
+  elif grep -qE '^[[:space:]]+esbuild:' "$ws"; then
+    return 0
+  elif grep -q '^allowBuilds:' "$ws"; then
+    sed -i 's/^allowBuilds:.*/&\n  esbuild: false/' "$ws"
+  else
+    printf '\nallowBuilds:\n  esbuild: false\n' >> "$ws"
+  fi
+  echo "set allowBuilds.esbuild = false in pnpm-workspace.yaml"
+}
+
+# One `pnpm add -D` for ESLint deps + missing tool deps (or print it).
+print_or_install_deps() {
+  local -a deps tools
+  read -r -a deps <<<"$(eslint_deps)"
+  mapfile -t tools < <(missing_tool_deps)
+  deps+=("${tools[@]}")
   local cmd="pnpm add -D ${deps[*]}"
   if [ "$INSTALL" = 1 ]; then
-    echo "Installing ESLint dependencies: $cmd"
+    [[ " ${tools[*]} " == *" tsx "* ]] && ensure_esbuild_build_policy
+    echo "Installing devDependencies: $cmd"
     (cd "$DIR" && pnpm add -D "${deps[@]}")
   else
-    echo "Run this to install the ESLint dependencies the generated eslint config needs:"
+    echo "Run this to install the devDependencies the generated config and scripts need:"
     echo "  $cmd"
   fi
+}
+
+# node-ts has no generator, so there may be no package.json at all. Create a
+# minimal ESM one (the tsconfig is nodenext) so pnpm add and the scripts work.
+ensure_node_ts_package() {
+  [ "$STACK" = "node-ts" ] && [ "$INSTALL" = 1 ] && [ ! -f "$DIR/package.json" ] || return 0
+  jq -n --arg n "$(printf '%s' "$NAME" | tr '[:upper:]' '[:lower:]')" \
+    '{name: $n, version: "0.0.0", private: true, type: "module"}' > "$DIR/package.json"
+  echo "wrote package.json"
 }
 
 # Canonical dev/test/lint/typecheck/format/format:check commands per stack.
 declare -A SCRIPTS
 case "$STACK" in
   react-vite)
-    SCRIPTS=( [dev]="vite" [test]="vitest" [lint]="eslint ." [typecheck]="tsc -b --noEmit" [format]="prettier --write ." ["format:check"]="prettier --check ." )
+    SCRIPTS=( [dev]="vite" [test]="vitest run --passWithNoTests" [lint]="eslint ." [typecheck]="tsc -b --noEmit" [format]="prettier --write ." ["format:check"]="prettier --check ." )
     ;;
   next)
-    SCRIPTS=( [dev]="next dev" [test]="vitest" [lint]="eslint ." [typecheck]="tsc --noEmit" [format]="prettier --write ." ["format:check"]="prettier --check ." )
+    SCRIPTS=( [dev]="next dev" [test]="vitest run --passWithNoTests" [lint]="eslint ." [typecheck]="next typegen && tsc --noEmit" [format]="prettier --write ." ["format:check"]="prettier --check ." )
     ;;
   nestjs)
-    SCRIPTS=( [dev]="nest start --watch" [test]="vitest run" [lint]='eslint "{src,apps,libs,test}/**/*.ts" --fix' [typecheck]="tsc --noEmit" [format]='prettier --write "src/**/*.ts"' ["format:check"]='prettier --check "src/**/*.ts"' )
+    SCRIPTS=( [dev]="nest start --watch" [test]="vitest run --passWithNoTests" [lint]='eslint "{src,apps,libs,test}/**/*.ts" --fix' [typecheck]="tsc --noEmit" [format]='prettier --write "src/**/*.ts"' ["format:check"]='prettier --check "src/**/*.ts"' )
     ;;
   node-ts)
-    SCRIPTS=( [dev]="tsx src/index.ts" [test]="vitest" [lint]="eslint ." [typecheck]="tsc --noEmit" [format]="prettier --write ." ["format:check"]="prettier --check ." )
+    SCRIPTS=( [dev]="tsx src/index.ts" [test]="vitest run --passWithNoTests" [lint]="eslint ." [typecheck]="tsc --noEmit" [format]="prettier --write ." ["format:check"]="prettier --check ." )
     ;;
 esac
 
 # Report which of the six canonical scripts are missing from package.json.
+# A `test` that is exactly bare `vitest` (watch mode: hangs under gh-flow.sh pr
+# and exits 1 with no test files) and, for next, a `typecheck` that is exactly
+# `tsc --noEmit` (misses .next/types globals like LayoutProps in CI) also
+# count as needing an update.
 # For react-vite/next/nestjs, a "lint" script that doesn't invoke eslint (e.g.
 # the vite/nest scaffolds' default `oxlint`) counts as needing an update,
 # since the generated eslint.config.js/.mjs only takes effect through eslint.
@@ -224,6 +313,10 @@ report_scripts() {
     if [ -z "$current" ]; then
       needs+=("$name")
     elif [ "$name" = "lint" ] && { [ "$STACK" = "react-vite" ] || [ "$STACK" = "next" ] || [ "$STACK" = "nestjs" ]; } && [[ "$current" != *eslint* ]]; then
+      needs+=("$name")
+    elif [ "$name" = "test" ] && [ "$current" = "vitest" ]; then
+      needs+=("$name")
+    elif [ "$name" = "typecheck" ] && [ "$STACK" = "next" ] && [ "$current" = "tsc --noEmit" ]; then
       needs+=("$name")
     fi
   done
@@ -294,10 +387,21 @@ ensure_tsconfig_strict() {
   node "$SKILL_DIR/scripts/ensure-tsconfig-strict.js" "$tsconfig_path" "$DIR"
 }
 
+# Last step: generator output plus this skill's templates won't match
+# prettier's style, and CI runs format:check - so format once now.
+run_format() {
+  [ "$INSTALL" = 1 ] || { echo "Run with --install to finish with 'pnpm run format' (so CI's format:check passes)."; return; }
+  [ -f "$DIR/package.json" ] || return 0
+  jq -e '.scripts.format != null' "$DIR/package.json" >/dev/null || return 0
+  (cd "$DIR" && pnpm run format)
+}
+
+ensure_node_ts_package
 copy_template_tree "$COMMON_DIR"
 generate_agents_md
 copy_template_tree "$STACK_DIR"
-print_or_install_eslint_deps
 report_scripts
-ensure_tsconfig_strict
 ensure_package_manager
+print_or_install_deps
+ensure_tsconfig_strict
+run_format

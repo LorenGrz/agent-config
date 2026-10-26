@@ -10,6 +10,10 @@
 #                             [--owner <owner>] [--name <repo>] [--visibility public]
 set -euo pipefail
 
+# A shell exporting CLICOLOR_FORCE=1 makes gh emit ANSI codes even when piped,
+# which breaks `gh ... --format json | jq`. Only CLICOLOR_FORCE=0 turns it off.
+export CLICOLOR_FORCE=0 NO_COLOR=1
+
 usage() {
   cat <<'EOF'
 Usage: bootstrap-github.sh [--dry-run] <step> [--owner <owner>] [--name <repo>] [--visibility public]
@@ -20,7 +24,8 @@ Steps (idempotent where gh supports a read check):
   settings  squash + merge-commit enabled, rebase disabled, delete-branch-on-merge
   labels    feat/fix/refactor/chore/triage labels
   project   create the GitHub Project v2, link it, add Priority/Size fields,
-            replace TBD/{{PROJECT_NUMBER}} locally (does not commit)
+            replace TBD/{{PROJECT_NUMBER}} locally, then commit that
+            ("chore: set project number to N") and push the current branch
   protect   branch protection on dev and main (status check: ci, no required reviews)
   all       runs every step above in order - only allowed with --dry-run;
             for real runs, confirm and run each step individually
@@ -105,7 +110,11 @@ step_project() {
     printf '+ %s\n' "gh project link <NUMBER> --owner \"$OWNER\" --repo \"$OWNER/$NAME\""
     printf '+ %s\n' "gh project field-create <NUMBER> --owner \"$OWNER\" --name Priority --data-type SINGLE_SELECT --single-select-options \"P0,P1,P2\""
     printf '+ %s\n' "gh project field-create <NUMBER> --owner \"$OWNER\" --name Size --data-type SINGLE_SELECT --single-select-options \"XS,S,M,L,XL\""
-    printf '+ %s\n' "(then replace TBD/{{PROJECT_NUMBER}} in .github/ISSUE_TEMPLATE/*.yml, AGENTS.md, .agents/CONTEXT.md with <NUMBER>, and print the commit command - does not commit)"
+    printf '+ %s\n' "(then replace TBD/{{PROJECT_NUMBER}} in .github/ISSUE_TEMPLATE/*.yml, AGENTS.md, .agents/CONTEXT.md with <NUMBER>)"
+    printf '+ %s\n' "(if that changed files:)"
+    printf '+ %s\n' "git add .github/ISSUE_TEMPLATE AGENTS.md .agents/CONTEXT.md"
+    printf '+ %s\n' "SKIP_BRANCH_GUARD=1 git commit -m \"chore: set project number to <NUMBER>\" -- .github/ISSUE_TEMPLATE AGENTS.md .agents/CONTEXT.md"
+    printf '+ %s\n' "SKIP_BRANCH_GUARD=1 git push"
     return
   fi
 
@@ -122,8 +131,18 @@ step_project() {
   done
 
   echo "Project #$number created: https://github.com/users/$OWNER/projects/$number"
-  echo "This only edited files on disk. Commit the number substitution yourself:"
-  echo "  git add .github/ISSUE_TEMPLATE AGENTS.md .agents/CONTEXT.md && git commit -m \"chore: set project number to $number\""
+
+  # Commit + push here (runs before `protect`, like the repo/dev steps) so no
+  # manual commit on dev is needed - the guard-branch hook would block it.
+  # Pathspec-limited so unrelated staged work never rides along.
+  local -a paths=(.github/ISSUE_TEMPLATE AGENTS.md .agents/CONTEXT.md)
+  if [ -z "$(git status --porcelain -- "${paths[@]}")" ]; then
+    echo "project number substitution changed no files, nothing to commit"
+  else
+    git add -- "${paths[@]}"
+    SKIP_BRANCH_GUARD=1 git commit -m "chore: set project number to $number" -- "${paths[@]}"
+    SKIP_BRANCH_GUARD=1 git push
+  fi
 }
 
 protect_branch() {
