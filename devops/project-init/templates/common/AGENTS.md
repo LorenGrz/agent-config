@@ -12,6 +12,7 @@ A new agent session should understand this project from these files alone, in th
 4. `docs/architecture.md` - overview, modules, data model, key flows, external services, env, deploy.
 5. `docs/decisions/` - ADRs: why a non-trivial trade-off was decided the way it was.
 6. `docs/superpowers/specs/` and `docs/superpowers/plans/` - what is being built and how, per unit of work.
+7. `docs/prompts.md` - every AI prompt the app sends (verbatim, where it lives, history and lessons). Only if the app calls an AI model.
 
 ## Purpose
 
@@ -86,6 +87,8 @@ Mechanical rules live in `eslint.config.*`, `tsconfig*.json`, and `.github/workf
 ## Documentation rules
 
 - Every approved spec/plan is saved under `docs/superpowers/specs/` or `docs/superpowers/plans/` before implementation starts. A Claude plan-mode plan (saved outside the repo, in `~/.claude/plans`) must be copied into `docs/superpowers/plans/YYYY-MM-DD-<slug>.md` before work begins.
+- Plans and specs created during a session are saved too, not only the first approved one: worker/subagent specs and mid-session follow-up plans go to `docs/superpowers/plans/YYYY-MM-DD-<slug>.md` in the same PR as the work they describe.
+- If the app sends prompts to an AI model, every prompt lives in `docs/prompts.md`: a verbatim copy, the file/function that owns it (the code stays the source of truth), and a short history of what was tried and why it changed. Update it in the same PR as any prompt change.
 - Any decision with a real trade-off (architecture, a hard-to-reverse library/service choice, data model, security trade-off) gets a new ADR in `docs/decisions/` - copy `docs/decisions/0000-template.md`.
 - When work pauses mid-flight, update `docs/plans/HANDOFF.md` before stopping, not after.
 - A PR that changes architecture, env vars, commands, or deploy updates `AGENTS.md`, `.agents/CONTEXT.md`, and `docs/architecture.md` in the same PR.
