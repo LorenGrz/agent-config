@@ -11,7 +11,6 @@ Full-stack developer, UNSAM tutor, Buenos Aires, Argentina.
 ## GitHub
 
 - Default owner/org for new repos: `LorenGrz`.
-- Showcase/mirror clones to keep in sync after pushing to this hub: `~/projects/claude-skills` (public showcase clone — `git -C ~/projects/claude-skills pull` after every push here).
 
 ## Stack and learning stage
 

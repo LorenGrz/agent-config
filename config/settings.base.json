@@ -41,7 +41,7 @@
       "Bash(aws s3 sync*)"
     ]
   },
-  "model": "opus",
+  "model": "opusplan",
   "hooks": {
     "PreToolUse": [
       {
@@ -68,6 +68,15 @@
           {
             "type": "command",
             "command": "bash ~/.claude/hooks/rtk.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/critical-reasoning.sh"
           }
         ]
       }
@@ -111,6 +120,16 @@
             "type": "command",
             "command": "bash ~/.claude/hooks/log-instructions.sh",
             "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/critical-reasoning.sh"
           }
         ]
       }
