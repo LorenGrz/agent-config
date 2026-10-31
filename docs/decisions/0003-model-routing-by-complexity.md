@@ -1,5 +1,7 @@
 # 0003 — Model routing by task complexity, not by habit
 
+> Partly superseded by [0009](0009-opusplan-and-critical-reasoning-hook.md): the main session now runs on Sonnet (`opusplan`); "main session (Opus)" below means plan mode / `reasoner`.
+
 > The "≤3 known files inline" rule below is narrowed by [0006](0006-always-delegate.md): it applies to known files only; open lookups go to `scout`.
 
 ## Context

@@ -9,6 +9,15 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/config/hooks/scout-readonly.sh\""
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/config/hooks/critical-reasoning.sh\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -50,6 +59,16 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/config/hooks/log-instructions.sh\"",
             "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/config/hooks/critical-reasoning.sh\""
           }
         ]
       }

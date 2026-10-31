@@ -147,6 +147,8 @@ Hooks, concretely (event → script):
 | Event | Script | Does |
 |---|---|---|
 | `PreToolUse` (Edit/Write/MultiEdit) | `guard-omarchy.sh` | denies edits under `~/.local/share/omarchy/` |
+| `PreToolUse` (Edit/Write/MultiEdit) | `critical-reasoning.sh` | nudges toward `reasoner` when the edited file is sensitive (migrations, auth, IAM, infra, CI); never blocks |
+| `UserPromptSubmit` | `critical-reasoning.sh` | nudges toward `reasoner` when the prompt is about architecture, security, migrations, prod or unknown-cause bugs; silent in subagents |
 | `PreToolUse` (Bash) | `scout-readonly.sh` | inside the `scout` subagent only: allows read-only commands, denies writes |
 | `PreToolUse` (Bash) | `rtk.sh` | routes read-only/verification commands through `rtk` to compress output; no-op if `rtk` is missing |
 | `PostToolUse` (Edit/Write/MultiEdit) | `format-file.sh` | runs the project's own formatter/linter on the edited file |
@@ -154,9 +156,9 @@ Hooks, concretely (event → script):
 | `Stop` | `stop-git-status.sh` | shows uncommitted changes when in a git repo |
 | `InstructionsLoaded` | `log-instructions.sh` | logs what got loaded to `~/.claude/logs/instructions-loaded.log` |
 
-The plugin marketplace method (below) ships five of them as a generic subset
+The plugin marketplace method (below) ships six of them as a generic subset
 (`hooks/hooks.json`: `scout-readonly.sh`, `format-file.sh`, `session-start.sh`,
-`stop-git-status.sh`, `log-instructions.sh`) and omits `guard-omarchy.sh` (desktop-specific),
+`stop-git-status.sh`, `log-instructions.sh`, `critical-reasoning.sh`) and omits `guard-omarchy.sh` (desktop-specific),
 `rtk.sh` (needs rtk installed) and the cost-tracking status line (untracked, machine-local).
 
 Generated files + symlink map (`install.sh` creates/repairs these; see `config/README.md`

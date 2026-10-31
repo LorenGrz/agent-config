@@ -8,3 +8,4 @@
 - [0006 — The main session delegates open lookups and large changes](0006-always-delegate.md) — open lookups to `scout`, large changes to `worker`; small known-file edits stay inline.
 - [0007 — Rename agent-config to agents-config](0007-rename-to-agents-config.md) — repo, plugin, marketplace, docs and setup skill renamed.
 - [0008 — SessionStart hook for routing and codebase-map refresh](0008-session-start-hook.md) — re-inject routing each session; nudge to refresh `.agents/CONTEXT.md` in large or stale repos.
+- [0009 — `opusplan` default and critical-reasoning hook](0009-opusplan-and-critical-reasoning-hook.md) — plans on Opus, execution on Sonnet; hook nudges toward `reasoner` on critical work.

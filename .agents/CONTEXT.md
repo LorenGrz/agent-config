@@ -9,7 +9,7 @@ on-demand skills in category dirs. Public repo: never commit secrets.
 - `development/ devops/ quality/ security/ productivity/ meta/ aws/` — skills (`<category>/<skill>/SKILL.md`); `aws/` came in via `git subtree` (ADR 0001).
 - `apexlang`, `omarchy`, `diagnose-crash` — external symlinks (gitignored / ship with Omarchy).
 - `config/` — `AGENTS.md`, `CLAUDE.md` (kept <=60 lines), `profiles/`, `settings.base.json`, `agents/` (scout/worker/reasoner), `rules/`, `hooks/` (*.sh), `rulesync/`.
-- `hooks/hooks.json` — generic plugin hooks (5 of the `config/hooks` scripts).
+- `hooks/hooks.json` — generic plugin hooks (6 of the `config/hooks` scripts).
 - `.claude-plugin/` — `plugin.json` + `marketplace.json`.
 - `docs/decisions/` — ADRs 0001-0008 (index in its README).
 - `evals/` — skill trigger evals (`<case>/prompt.md` + `graders/*.md`).
@@ -33,7 +33,7 @@ push, then `git -C ~/projects/claude-skills pull` (showcase mirror).
 
 ## Current state (2026-10-23)
 - Renamed to agents-config (ADR 0007).
-- ADRs 0006 (always delegate), 0007 (rename), 0008 (SessionStart hook) just landed.
+- ADRs 0006 (always delegate), 0007 (rename), 0008 (SessionStart hook), 0009 (opusplan + critical-reasoning hook) landed. Default model is `opusplan`.
 - Branch `feat/skill-evals-and-docs`: trigger evals, eval script, worktree rule for parallel workers, doc fixes.
 
 ## Known issues

@@ -33,7 +33,8 @@ Rule files are guidance; hard constraints live in each repo's ESLint/CI/hooks (s
 
 Pick the model by task complexity, not by habit:
 
-- **Opus** (main session / `reasoner`) only reasons and decides — architecture, unknown-cause bugs, plan review, hard-to-reverse calls. Never does worker-type writing.
+- **Main session** runs on Sonnet via `opusplan`: Opus in plan mode, Sonnet otherwise (ADR 0009).
+- **Opus** (plan mode / `reasoner`) only reasons and decides — architecture, unknown-cause bugs, plan review, hard-to-reverse calls. Never does worker-type writing.
 - **Sonnet** (`worker`) writes all code/docs from an already-decided plan.
 - **Haiku** (`scout`) does light read-only lookups only.
 
@@ -48,7 +49,7 @@ When superpowers dispatches subagents (`subagent-driven-development`, `executing
 
 ### When to delegate
 
-- The main session (Opus) decides, writes specs for subagents, reviews their results, and reports.
+- Plan mode (Opus) and `reasoner` decide; the main session (Sonnet) writes specs for subagents, reviews their results, and reports. The `critical-reasoning.sh` hook nudges toward `reasoner` on architecture, security, migrations, prod and unknown-cause work.
 - Open lookups (paths not already known, sweeping directories or caches, web search, docs lookup, inventories) → `scout`, with one concrete question. Reading an already-known file to decide stays inline.
 - Large changes (more than 3 files, or bulk/mechanical writing) → `worker`, with the decided spec, the exact files, and an acceptance command. Small changes to ≤3 known files stay inline: a subagent's cold start costs more than doing it.
 - Decisions costly to get wrong (cross-module design, unknown-cause bugs, security) → `reasoner` or the main session, never `worker`/`scout`.

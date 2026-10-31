@@ -1,5 +1,7 @@
 # 0006 — The main session delegates open lookups and large changes
 
+> Partly superseded by [0009](0009-opusplan-and-critical-reasoning-hook.md): the main session now runs on Sonnet (`opusplan`); "main session (Opus)" below means plan mode / `reasoner`.
+
 ## Context
 
 ADR 0003 allowed skipping subagents when a change touched ≤3 known files. Combined with the
